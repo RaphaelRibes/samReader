@@ -49,6 +49,10 @@ bash sam_reader.sh -i example.sam -o example_output
 
 This command will process the `example.sam` file and generate output files with the prefix `example_output`.
 
+## Aknowledgements
+
+ASCII art generated with https://patorjk.com/software/taag/
+
 ## License
 
 This program is free software: you can redistribute it and/or modify
