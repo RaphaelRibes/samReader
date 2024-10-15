@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.13
 #-*- coding : utf-8 -*-
 
 
@@ -33,12 +33,91 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
 ############### IMPORT MODULES ###############
 
-import os, sys, re ....
+import os, sys, re
+from tqdm import tqdm
 
 
 ############### FUNCTIONS TO :
+## 0/ Get options,
+def getOptions(argv):
+    """
+        Get the parsed options
+    """
+    import getopt
+    try:
+        opts, args = getopt.getopt(argv, "hi:o:", ["help", "input=", "output="])
+    except getopt.GetoptError:
+        print("samReader.sh -i <inputfile> -o <outputfile>")
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            print("samReader.sh -i <inputfile> -o <outputfile>")
+            sys.exit()
+        elif opt in ("-i", "--input"):
+            inputfile = arg
+        elif opt in ("-o", "--output"):
+            outputfile = arg
+    return inputfile, outputfile
 
-## 1/ Check, 
+## 1/ Check,
+
+def checkFormat(file):
+    """
+        Check the format of the input file
+    """
+    if file.endswith(".sam"):
+        with open(file, "r") as f:
+            sam_line = f.readlines()
+
+        # remove the lines who start with @
+        # sam_line = [line for line in sam_line if not line.startswith("@")]
+
+        # we're gonna check that every columns follows the right formating
+        for n, line in enumerate(sam_line):
+            if line.startswith('@'): continue
+            line = line.split('\t')
+            # col 1 : QNAME -> str() following this regex quarry [!-?A-~]{1,254}
+            qname = re.match(r"[!-?A-~]{1,254}", line[0])
+            if not qname:
+                l = len(f"Error line {n+1} : ")
+                print(f'Error line {n+1} : {line[0]}    {"\t".join(line[1:3])}  ...\n'
+                      f'{' '*l}{"^"*len(line[0])}\n'
+                      f'Expected : {line[0]} to be a string following this regex [!-?A-~]{"{1,254}"}')
+                # je suis désolé pour {"{1,254}"}... moi aussi ça me fait mal au coeur mais ça marche
+                sys.exit(2)
+
+            # col 2 : FLAG -> int() following this regex [0, 2^{16} − 1] (0 to 65535)
+            # make sure it's a number
+            flag_isdigit = line[1].replace('-', '').isdigit()
+            if not flag_isdigit:
+                l = len(f"Error line {n + 1} : {"\t".join(line[0:1])} ")
+                print(f'Error line {n + 1} : {"\t".join(line[0:1])} {line[1]}    {"\t".join(line[2:4])}  ...\n'
+                      f'{" " * l}{"^" * len(line[1])}\n'
+                      f'Expected : {line[0]} to be an integer')
+                sys.exit(2)
+
+            flag_isbinary = re.match(r"[01]{12}", flagBinary(line[1]))
+            if not flag_isbinary:
+                l = len(f"Error line {n + 1} : {"\t".join(line[0:1])} ")
+                print(f'Error line {n + 1} : {"\t".join(line[0:1])} {line[1]}    {"\t".join(line[2:4])}  ...\n'
+                      f'{' ' * l}{"^" * len(line[1])}\n'
+                      f'Expected : {line[0]} to be a integer ranging from 0 to 65535')
+                sys.exit(2)
+
+            # col 3 : RNAME -> str() following this regex \*|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*
+            rname = re.match(r"[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*", line[2])
+            if not rname:  # There is no way this can happen... but just in case
+                l = len(f"Error line {n + 1} : {"\t".join(line[0:2])} ")
+                print(f'Error line {n + 1} : {"\t".join(line[0:2])} {line[2]}    {"\t".join(line[3:5])}  ...\n'
+                      f'{" " * l}{"^" * len(line[2])}\n'
+                      f'Expected : {line[2]} to be a string following this regex [0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*')
+                sys.exit(2)
+
+            # col 4 : POS -> int() following this regex [0, 2^{31} - 1] (0 to 2147483647)
+
+    else:
+        print("The input file is not in the correct format. Please provide a .sam file.")
+        sys.exit(2)
 
 ## 2/ Read, 
 
@@ -56,7 +135,7 @@ def flagBinary(flag) :
         add = 12 - len(flagB) # We compute the difference between the maximal flag size (12) and the length of the binary flag.
         for t in range(add):
             flagB.insert(0,'0') # We insert 0 to complete until the maximal flag size.
-    return flagB
+    return "".join(flagB) # We return the flag in binary format.
 
 
 #### Analyze the unmapped reads (not paired) ####
@@ -174,12 +253,22 @@ def globalPercentCigar():
 #### Summarise the results ####
 
 def Summary(fileName):
+    pass
     
    
 
 #### Main function ####
 
 def main(argv):
+    """
+        Main function
+    """
+    with tqdm(total=100, desc="Grapping the options...") as pbar:
+        inputfile, outputfile = getOptions(argv)
+        pbar.update(1)
+        pbar.set_description("Checking the format of the input file...")
+        checkFormat(inputfile)
+        pbar.update(9)
     
 
 ############### LAUNCH THE SCRIPT ###############
