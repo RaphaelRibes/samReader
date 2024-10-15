@@ -1,5 +1,7 @@
 # SamReader
 
+does not even start yet don't look at this for now
+
 ## Abstract
 
 Next-generation sequencing (NGS) technologies have revolutionized genomics by enabling the analysis of short DNA sequences (reads).
