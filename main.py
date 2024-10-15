@@ -20,14 +20,14 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
      
     ### OPTION LIST:
-        ##-h or --help : help information
-        ##-i or --input: input file (.sam)
-        ##-o or --output: output name files (.txt)
+        ## -h or --help : help information
+        ## -i or --input: input file (.sam)
+        ## -o or --output: output name files (.txt)
 
     #Synopsis:
-        ##main.py -h or --help # launch the help.
-        ##main.py -i or --input <file> # Launch SamReader to analyze a samtools file (.sam) and print the result in the terminal
-        ##main.py -i or --input <file> -o or --output <name> # Launch SamReader to analyze a samtools file (.sam) and print the result in the file called <name>
+        ## samReader.sh -h or --help # launch the help.
+        ## samReader.sh -i or --input <file> # Launch SamReader to analyze a samtools file (.sam) and print the result in the terminal
+        ## samReader.sh -i or --input <file> -o or --output <name> # Launch SamReader to analyze a samtools file (.sam) and print the result in the file called <name>
   
 
 
