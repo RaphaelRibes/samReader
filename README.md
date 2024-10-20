@@ -28,6 +28,7 @@ The script can take the following arguments:
 - -h or --help : help information
 - -i or --input: input file (.sam)
 - -o or --output: output name files (.txt)
+- -t or --trusted: assumes the input file is trusted and skips the verification step (optional)
 
 ## Installation
 

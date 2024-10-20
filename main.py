@@ -26,14 +26,14 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
     #Synopsis:
         ## samReader.sh -h or --help # launch the help.
-        ## samReader.sh -i or --input <file> # Launch SamReader to analyze a samtools file (.sam) and print the result in the terminal
-        ## samReader.sh -i or --input <file> -o or --output <name> # Launch SamReader to analyze a samtools file (.sam) and print the result in the file called <name>
+        ## samReader.sh -i or --input <file> # Launch samReader to analyze a samtools file (.sam) and print the result in the terminal
+        ## samReader.sh -i or --input <file> -o or --output <name> # Launch samReader to analyze a samtools file (.sam) and print the result in the file called <name>
   
 
 
 ############### IMPORT MODULES ###############
 
-import os, sys, re
+import os, sys, re, getopt
 from tqdm import tqdm
 
 
@@ -43,12 +43,14 @@ def getOptions(argv):
     """
         Get the parsed options
     """
-    import getopt
     try:
-        opts, args = getopt.getopt(argv, "hi:o:", ["help", "input=", "output="])
+        opts, args = getopt.getopt(argv, "thi:o:", ["trusted", "help", "input=", "output="])
     except getopt.GetoptError:
         print("samReader.sh -i <inputfile> -o <outputfile>")
         sys.exit(2)
+    inputfile = ""
+    outputfile = ""
+    trusted = False
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print("samReader.sh -i <inputfile> -o <outputfile>")
@@ -57,7 +59,9 @@ def getOptions(argv):
             inputfile = arg
         elif opt in ("-o", "--output"):
             outputfile = arg
-    return inputfile, outputfile
+        elif opt in ("-t", "--trusted"):
+            trusted = True
+    return inputfile, outputfile, trusted
 
 ## 1/ Check,
 
@@ -72,10 +76,14 @@ def checkFormat(file):
         # remove the lines who start with @
         # sam_line = [line for line in sam_line if not line.startswith("@")]
 
+        clean = []
+
         # we're gonna check that every columns follows the right formating
         for n, line in enumerate(sam_line):
+            clean.append({})
             if line.startswith('@'): continue
             line = line.split('\t')
+
             # col 1 : QNAME -> str() following this regex quarry [!-?A-~]{1,254}
             qname = re.match(r"[!-?A-~]{1,254}", line[0])
             if not qname:
@@ -85,6 +93,7 @@ def checkFormat(file):
                       f'Expected : {line[0]} to be a string following this regex [!-?A-~]{"{1,254}"}')
                 # je suis désolé pour {"{1,254}"}... moi aussi ça me fait mal au coeur mais ça marche
                 sys.exit(2)
+            clean[-1]['QNAME'] = line[0]
 
             # col 2 : FLAG -> int() following this regex [0, 2^{16} − 1] (0 to 65535)
             # make sure it's a number
@@ -103,6 +112,7 @@ def checkFormat(file):
                       f'{' ' * l}{"^" * len(line[1])}\n'
                       f'Expected : {line[0]} to be a integer ranging from 0 to 65535')
                 sys.exit(2)
+            clean[-1]['FLAG'] = flagBinary(line[1])
 
             # col 3 : RNAME -> str() following this regex \*|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*
             rname = re.match(r"[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*", line[2])
@@ -110,14 +120,63 @@ def checkFormat(file):
                 l = len(f"Error line {n + 1} : {"\t".join(line[0:2])} ")
                 print(f'Error line {n + 1} : {"\t".join(line[0:2])} {line[2]}    {"\t".join(line[3:5])}  ...\n'
                       f'{" " * l}{"^" * len(line[2])}\n'
-                      f'Expected : {line[2]} to be a string following this regex [0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*')
+                      f'Expected : {line[2]} to be a string following this regex [0-9A-Za-z!#$%&+./:;?@^_|~-^*=][0-9A-Za-z!#$%&*+./:;=?@^_|~-]*')
                 sys.exit(2)
+            clean[-1]['RNAME'] = line[2]
 
-            # col 4 : POS -> int() following this regex [0, 2^{31} - 1] (0 to 2147483647)
+            if clean[-1]['RNAME'] != "*":
+                # col 4 : POS -> int() following this regex [0, 2^{31} - 1] (0 to 2147483647)
+                pos_isdigit = line[3].replace('-', '').isdigit()
+                if not pos_isdigit:
+                    l = len(f"Error line {n + 1} : {"\t".join(line[0:3])} ")
+                    print(f'Error line {n + 1} : {"\t".join(line[0:3])} {line[3]}    {"\t".join(line[4:6])}  ...\n'
+                          f'{" " * l}{"^" * len(line[3])}\n'
+                          f'Expected : {line[3]} to be an integer')
+                    sys.exit(2)
+                clean[-1]['POS'] = int(line[3])
+                # we won't check for the range of the integer because it's too long and it has clearly been made so
+                # that it's impossible to reach the limit
+
+                # col 6 : CIGAR -> str() following this regex [0-9]+[MIDNSHPX=]
+                cigar = []
+                if line[5] == "*":
+                    cigar = ['*']
+                else:
+                    for match in re.finditer(r"[0-9]+[MIDNSHPX=]", line[5]):
+                        cigar.append(match.group())
+                    if len(cigar) == 0:
+                        l = len(f"Error line {n + 1} : {"\t".join(line[0:5])} ")
+                        print(f'Error line {n + 1} : {"\t".join(line[0:5])} {line[5]}    {"\t".join(line[6:8])}  ...\n'
+                              f'{" " * l}{"^" * len(line[5])}\n'
+                              f'Expected : {line[5]} to be a string following this regex [0-9]+[MIDNSHPX=]')
+                        sys.exit(2)
+                clean[-1]['CIGAR'] = cigar
+            else:
+                clean[-1]['POS'] = 0
+                clean[-1]['CIGAR'] = '*'
+
+            # col 5 : MAPQ -> int() following this regex [0, 2^{8} - 1] (0 to 255)
+            mapq_isdigit = line[4].replace('-', '').isdigit()
+            if not mapq_isdigit:
+                l = len(f"Error line {n + 1} : {"\t".join(line[0:4])} ")
+                print(f'Error line {n + 1} : {"\t".join(line[0:4])} {line[4]}    {"\t".join(line[5:7])}  ...\n'
+                      f'{" " * l}{"^" * len(line[4])}\n'
+                      f'Expected : {line[4]} to be an integer')
+                sys.exit(2)
+            elif 0 < int(line[4]) > 255:
+                l = len(f"Error line {n + 1} : {"\t".join(line[0:4])} ")
+                print(f'Error line {n + 1} : {"\t".join(line[0:4])} {line[4]}    {"\t".join(line[5:7])}  ...\n'
+                      f'{" " * l}{"^" * len(line[4])}\n'
+                      f'Expected : {line[4]} to be an integer ranging from 0 to 255')
+                sys.exit(2)
+            clean[-1]['MAPQ'] = int(line[4])
+
 
     else:
         print("The input file is not in the correct format. Please provide a .sam file.")
         sys.exit(2)
+
+    return clean
 
 ## 2/ Read, 
 
@@ -176,7 +235,7 @@ def partiallyMapped(sam_line):
 ### Analyse the CIGAR = regular expression that summarise each read alignment ###
 def readCigar(cigar): 
    
-    ext = re.findall('\w',cigar) # split cigar 
+    ext = re.findall('w',cigar) # split cigar
     key=[] 
     value=[]    
     val=""
@@ -264,11 +323,16 @@ def main(argv):
         Main function
     """
     with tqdm(total=100, desc="Grapping the options...") as pbar:
-        inputfile, outputfile = getOptions(argv)
+        inputfile, outputfile, trusted = getOptions(argv)
         pbar.update(1)
         pbar.set_description("Checking the format of the input file...")
-        checkFormat(inputfile)
-        pbar.update(9)
+        if trusted:
+            pbar.set_description("Skipping the format check...")
+            pbar.update(19)
+        else:
+            clean = checkFormat(inputfile)
+            pbar.update(19)
+        print(clean)
     
 
 ############### LAUNCH THE SCRIPT ###############

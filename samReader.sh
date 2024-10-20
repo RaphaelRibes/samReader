@@ -3,6 +3,7 @@
 # Variables pour stocker les chemins d'entrée et de sortie
 input_file=""
 output_file=""
+trusted=""
 
 # Fonction pour afficher l'aide
 usage() {
@@ -20,6 +21,7 @@ usage() {
   echo "  -h, --help                Affiche ce message d'aide"
   echo "  -i, --input <fichier>     Spécifie le fichier d'entrée"
   echo "  -o, --output <fichier>    Spécifie le fichier de sortie"
+  echo "  -t, --trusted             Ne vérifie pas le contenu du fichier d'entrée"
   exit 1
 }
 
@@ -35,11 +37,20 @@ while [[ "$1" != "" ]]; do
         -o | --output)  shift
                         output_file=$1
                         ;;
+        # this option does not require an argument
+        -t | --trusted) trusted="true"
+                        ;;
         * )             usage
                         exit 1
     esac
     shift
 done
+
+# if the file is trusted, we don't check the content
+if [ ! -z "$trusted" ]; then
+    python3 main.py -i "$input_file" -o "$output_file" -t
+    exit 0
+fi
 
 # This script reads the sam file and check if the file is empty or not, containing unauthorized characters or not and then
 # starts main.py script to read the sam file and generate the output file.
