@@ -32,11 +32,13 @@ The script can take the following arguments:
 
 ## Installation
 
+This script requires Python 3.13. It is not guaranteed to work with older versions of Python.
+
 To use this script, you need to have Python installed on your system.
 You can download the script directly from this repository or clone the repository using the following command:
 
 ```bash
-git clone https://github.com/RaphaelRibes/SamReader.git
+git clone https://github.com/RaphaelRibes/samReader.git
 ```
 
 Install the required Python packages using the following command:

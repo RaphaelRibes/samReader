@@ -13,8 +13,6 @@ usage() {
   echo " (__  ) / /_/ /  / / / / / / / _, _/ /  __// /_/ / / /_/ /  /  __/ / /    "
   echo "/____/  \__,_/  /_/ /_/ /_/ /_/ |_|  \___/ \__,_/  \__,_/   \___/ /_/     "
 
-
-
   echo "Usage: $0 [-h|--help] [-i|--input input_file] [-o|--output output_file]"
   echo
   echo "Options:"
