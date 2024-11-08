@@ -64,7 +64,7 @@ def flags(tested: str) -> bool:
     return re.match(r"[01]{16}", toBinary(tested, 16)) is not None
 
 def rname(tested: str) -> bool:
-    return re.match(r"[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*", tested) is not None
+    return re.match(r"\*|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*", tested) is not None
 
 def pos(tested: str) -> bool:
     if not tested.replace('-', '').isdigit():
@@ -77,9 +77,28 @@ def mapq(tested: str) -> bool:
     return re.match(r"[01]{8}", toBinary(tested, 8)) is not None
 
 def cigar(tested: str) -> bool:
-    return re.match(r"[0-9]+[MIDNSHPX=]", tested) is not None
+    return re.match(r"\*|([0-9]+[MIDNSHPX=])+", tested) is not None
 
-def check_line(payload:dict, trusted=False):
+def rnext(tested: str) -> bool:
+    return re.match(r"\*|=|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*", tested) is not None
+
+def pnext(tested: str) -> bool:
+    if not tested.isdigit():
+        return False
+    return re.match(r"[01]{31}", toBinary(tested, 31)) is not None
+
+def tlen(tested: str) -> bool:
+    if not tested.replace('-', '').isdigit():
+        return False
+    return re.match(r"-?[01]{31}", toBinary(tested, 31)) is not None
+
+def seq(tested: str) -> bool:
+    return re.match(r"\*|[A-Za-z=.]+", tested) is not None
+
+def qual(tested: str) -> bool:
+    return re.match(r"[!-~]+", tested) is not None
+
+def check_line(payload:dict, trusted=False) -> None:
     """
     Check all the fields of the payload
     The payload is a dictionary with the following keys
@@ -101,49 +120,84 @@ def check_line(payload:dict, trusted=False):
     :return:
     """
     if trusted:
-        return payload
+        return
     payload_values = payload_tolist(payload)
 
     # col 1 : QNAME -> str() following regex [!-?A-~]{1,254}
     if not qname(payload["qname"]):
-        print(f'Error line {payload['line']} :'
+        print(f'Error with QNAME line {payload['line']} :'
               f'\n{display_error_context(payload_values, "qname")}\n'
               f'Expected : {payload["qname"]} to be a string following this regex [!-?A-~]{"{1,254}"}')
         sys.exit(2)
 
     # col 2 : FLAGS -> int() following regex [01]{12,16}
     if not flags(payload["flags"]):
-        print(f'Error line {payload['line']} :'
+        print(f'Error with FLAG line {payload['line']} :'
               f'\n{display_error_context(payload_values, "flags")}\n'
               f'Expected : {payload["flags"]} to be a integer ranging from 0 to 65535')
         sys.exit(2)
 
     # col 3 : RNAME -> str() following this regex \*|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*
     if not rname(payload["rname"]):
-        print(f'Error line {payload['line']} :'
+        print(f'Error with RNAME line {payload['line']} :'
               f'\n{display_error_context(payload_values, "rname")}\n'
               f'Expected : {payload["rname"]} to be a string following this regex [0-9A-Za-z!#$%&+./:;?@^_|~-^*=][0-9A-Za-z!#$%&*+./:;=?@^_|~-]*')
         sys.exit(2)
 
     # col 4 : POS -> int() following this regex [0, 2^{31} - 1] (0 to 2147483647)
     if not pos(payload["pos"]):
-        print(f'Error line {payload['line']} :'
+        print(f'Error with POS line {payload['line']} :'
               f'\n{display_error_context(payload_values, "pos")}\n'
               f'Expected : {payload["pos"]} to be an integer ranging from 0 to 2147483647 (2^31 - 1)')
         sys.exit(2)
 
     # col 5 : MAPQ -> int() following this regex [0, 2^{8} - 1] (0 to 255)
     if not mapq(payload["mapq"]):
-        print(f'Error line {payload['line']} :'
+        print(f'Error with MAPQ line {payload['line']} :'
               f'\n{display_error_context(payload_values, "mapq")}\n'
               f'Expected : {payload["mapq"]} to be an integer ranging from 0 to 255 (2^8 - 1)')
         sys.exit(2)
 
     # col 6 : CIGAR -> str() following this regex [0-9]+[MIDNSHPX=]
     if not cigar(payload["cigar"]):
-        print(f'Error line {payload['line']} :'
+        print(f'Error with CIGAR line {payload['line']} :'
               f'\n{display_error_context(payload_values, "cigar")}\n'
-              f'Expected : {payload["cigar"]} to be a string following this regex [0-9]+[MIDNSHPX=]')
+              f'Expected : {payload["cigar"]} to be a string following this regex \\*|([0-9]+[MIDNSHPX=])+')
+        sys.exit(2)
+
+    # col 7 : RNEXT -> str() following this regex \*|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*
+    if not rnext(payload["rnext"]):
+        print(f'Error with RNEXT line {payload['line']} :'
+              f'\n{display_error_context(payload_values, "rnext")}\n'
+              f'Expected : {payload["rnext"]} to be a string following this regex \\*|[0-9A-Za-z!#$%&+./:;?@^_|~-^*=][0-9A-Za-z!#$%&*+./:;=?@^_|~-]*')
+        sys.exit(2)
+
+    # col 8 : PNEXT -> int() following this regex [0, 2^{31} - 1] (0 to 2147483647)
+    if not pnext(payload["pnext"]):
+        print(f'Error with PNEXT line {payload['line']} :'
+              f'\n{display_error_context(payload_values, "pnext")}\n'
+              f'Expected : {payload["pnext"]} to be an integer ranging from 0 to 2147483647 (2^31 - 1)')
+        sys.exit(2)
+
+    # col 9 : TLEN -> int() following this regex [-][0, 2^{31} - 1] (-2147483647 to 2147483647)
+    if not tlen(payload["tlen"]):
+        print(f'Error with TLEN line {payload['line']} :'
+              f'\n{display_error_context(payload_values, "tlen")}\n'
+              f'Expected : {payload["tlen"]} to be an integer ranging from -2147483647 to 2147483647 (-2^31 + 1 to 2^31 - 1)')
+        sys.exit(2)
+
+    # col 10 : SEQ -> str() following this regex \*|[A-Za-z=.]+
+    if not seq(payload["seq"]):
+        print(f'Error with SEQ line {payload['line']} :'
+              f'\n{display_error_context(payload_values, "seq")}\n'
+              f'Expected : {payload["seq"]} to be a string following this regex \\*|[A-Za-z=.]+')
+        sys.exit(2)
+
+    # col 11 : QUAL -> str() following this regex [!-~]+
+    if not qual(payload["qual"]):
+        print(f'Error with QUAL line {payload['line']} :'
+              f'\n{display_error_context(payload_values, "qual")}\n'
+              f'Expected : {payload["qual"]} to be a string following this regex [!-~]+')
         sys.exit(2)
 
 

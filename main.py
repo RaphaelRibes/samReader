@@ -36,7 +36,7 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 ############### IMPORT MODULES ###############
 
 import os, sys, re, getopt
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from checks import check_line, payload_tolist, line_to_payload
 
 
@@ -84,71 +84,26 @@ def checkFormat(file, trusted=False):
         clean = []
 
         # we're gonna check that every columns follows the right formating
-        for n, line in enumerate(sam_line):
+        desc = "Checking the format of the input file and storing the data" if not trusted else "Storing the data"
+        for n, line in tqdm(enumerate(sam_line),
+                            desc=desc,
+                            total=len(sam_line)):
             clean.append({})
             if line.startswith('@'): continue
             line = line.split('\t')
+
             payload: dict = line_to_payload(line, n)
             check_line(payload, trusted=trusted)
+
             clean[-1] = payload
             if len(line) > 11:
                 clean[-1]['extra'] = line[11:]
 
-            if clean[-1]['RNAME'] != "*":
-                # col 4 : POS -> int() following this regex [0, 2^{31} - 1] (0 to 2147483647)
-                pos_isdigit = line[3].replace('-', '').isdigit()
-                if not pos_isdigit:
-                    l = len(f"Error line {n + 1} : {"\t".join(line[0:3])} ")
-                    print(f'Error line {n + 1} : {"\t".join(line[0:3])} {line[3]}    {"\t".join(line[4:6])}  ...\n'
-                          f'{" " * l}{"^" * len(line[3])}\n'
-                          f'Expected : {line[3]} to be an integer')
-                    sys.exit(2)
-                clean[-1]['POS'] = int(line[3])
-                # we won't check for the range of the integer because it's too long and it has clearly been made so
-                # that it's impossible to reach the limit
-
-                # col 6 : CIGAR -> str() following this regex [0-9]+[MIDNSHPX=]
-                cigar = []
-                if line[5] == "*":
-                    cigar = ['*']
-                else:
-                    for match in re.finditer(r"[0-9]+[MIDNSHPX=]", line[5]):
-                        cigar.append(match.group())
-                    if len(cigar) == 0:
-                        l = len(f"Error line {n + 1} : {"\t".join(line[0:5])} ")
-                        print(f'Error line {n + 1} : {"\t".join(line[0:5])} {line[5]}    {"\t".join(line[6:8])}  ...\n'
-                              f'{" " * l}{"^" * len(line[5])}\n'
-                              f'Expected : {line[5]} to be a string following this regex [0-9]+[MIDNSHPX=]')
-                        sys.exit(2)
-                clean[-1]['CIGAR'] = cigar
-            else:
-                clean[-1]['POS'] = 0
-                clean[-1]['CIGAR'] = '*'
-
-            # col 5 : MAPQ -> int() following this regex [0, 2^{8} - 1] (0 to 255)
-            mapq_isdigit = line[4].replace('-', '').isdigit()
-            if not mapq_isdigit:
-                l = len(f"Error line {n + 1} : {"\t".join(line[0:4])} ")
-                print(f'Error line {n + 1} : {"\t".join(line[0:4])} {line[4]}    {"\t".join(line[5:7])}  ...\n'
-                      f'{" " * l}{"^" * len(line[4])}\n'
-                      f'Expected : {line[4]} to be an integer')
-                sys.exit(2)
-            elif 0 < int(line[4]) > 255:
-                l = len(f"Error line {n + 1} : {"\t".join(line[0:4])} ")
-                print(f'Error line {n + 1} : {"\t".join(line[0:4])} {line[4]}    {"\t".join(line[5:7])}  ...\n'
-                      f'{" " * l}{"^" * len(line[4])}\n'
-                      f'Expected : {line[4]} to be an integer ranging from 0 to 255')
-                sys.exit(2)
-            clean[-1]['MAPQ'] = int(line[4])
-
-            # col 7 : RNEXT -> str() following this regex \*|=|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*
-
+        return clean
 
     else:
         print("The input file is not in the correct format. Please provide a .sam file.")
         sys.exit(2)
-
-    return clean
 
 ## 2/ Read, 
 
@@ -169,17 +124,13 @@ def main(argv):
     """
         Main function
     """
-    with tqdm(total=100, desc="Grapping the options...") as pbar:
-        inputfile, outputfile, trusted = getOptions(argv)
-        pbar.update(1)
-        pbar.set_description("Checking the format of the input file...")
-        if trusted:
-            pbar.set_description("Skipping the format check...")
-            pbar.update(19)
-        else:
-            clean = checkFormat(inputfile)
-            pbar.update(19)
-        print(clean)
+    inputfile, outputfile, trusted = getOptions(argv)
+    if trusted:
+        print("Skipping the format check...")
+        clean = checkFormat(inputfile, trusted=trusted)
+    else:
+        clean = checkFormat(inputfile, trusted=trusted)
+    # print(clean)
     
 
 ############### LAUNCH THE SCRIPT ###############

@@ -5,7 +5,13 @@ def toBinary(load, exponent):
     flagB = bin(int(load))  # Transform the integer into a binary.
     flagB = flagB.replace('0b', '')  # Remove '0b' Example: '0b1001101' > '1001101'
     flagB = list(flagB)
-    starting_index = 0 if flagB[0] != '-' else 1  # We check if the binary is negative.
+
+    if flagB[0] == '-':
+        starting_index = 1  # We start at the index 1 if the number is negative.
+        exponent += 1  # We add 1 to the exponent if the number is negative.
+    else:
+        starting_index = 0
+
     if len(flagB) < exponent:  # Size adjustement to exponent
         add = exponent - len(
             flagB)  # We compute the difference between the maximal size and the length of the binary flag.
