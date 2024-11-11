@@ -35,10 +35,11 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
 ############### IMPORT MODULES ###############
 
-import os, sys, re, getopt
+import os, sys, getopt, json, subprocess
 from tqdm.auto import tqdm
-from checks import check_line, payload_tolist, line_to_payload
-
+from checks import check_line, line_to_payload
+from analyse import partiallyMappedOrUnmapped, outputTableCigar, globalPercentCigar
+import pandas as pd
 
 ############### FUNCTIONS TO :
 ## 0/ Get options,
@@ -68,7 +69,7 @@ def getOptions(argv):
             trusted = True
     return inputfile, outputfile, trusted
 
-## 1/ Check,
+## 1/ Check, Read and store the data
 
 def checkFormat(file, trusted=False):
     """
@@ -88,14 +89,14 @@ def checkFormat(file, trusted=False):
         for n, line in tqdm(enumerate(sam_line),
                             desc=desc,
                             total=len(sam_line)):
-            clean.append({})
+
             if line.startswith('@'): continue
             line = line.split('\t')
 
             payload: dict = line_to_payload(line, n)
             check_line(payload, trusted=trusted)
 
-            clean[-1] = payload
+            clean.append(payload)
             if len(line) > 11:
                 clean[-1]['extra'] = line[11:]
 
@@ -105,18 +106,71 @@ def checkFormat(file, trusted=False):
         print("The input file is not in the correct format. Please provide a .sam file.")
         sys.exit(2)
 
-## 2/ Read, 
-
-## 3/ Store,
-
-## 4/ Analyse
+## 2/ Analyse
  
 #### Summarise the results ####
 
-def Summary(fileName):
-    pass
-    
-   
+def Summary(fileName, results, path):
+    latex_content = r"""% Preamble
+\documentclass[11pt]{{article}}
+
+% Packages
+\usepackage{{amsmath}}
+\usepackage{{fancyhdr}}
+\usepackage{{verbatim}}
+
+\begin{{document}}
+
+% ASCII art at the top of the page
+\begin{{verbatim}}
+                                 ____                      __
+   _____  ____ _   ____ ___    / __ \  ___   ____ _  ____/ /  ___    _____
+  / ___/ / __ `/  / __ `__ \  / /_/ / / _ \ / __ `/ / __  /  / _ \  / ___/
+ (__  ) / /_/ /  / / / / / / / _, _/ /  __// /_/ / / /_/ /  /  __/ / /
+/____/  \__,_/  /_/ /_/ /_/ /_/ |_|  \___/ \__,_/  \__,_/   \___/ /_/
+\end{{verbatim}}
+
+\section{{Global cigar mutation observed }}
+\begin{{table}}[h]
+\centering
+\begin{{tabular}}{{|c|c|c|c|c|c|c|c|c|c|}}
+\hline
+M & I & D & S & H & N & P & X & = \\
+\hline
+{M} & {I} & {D} & {S} & {H} & {N} & {P} & {X} & {E} \\
+\hline
+\end{{tabular}}
+\end{{table}}
+% add text explaining each mutation type
+\begin{{itemize}}
+\item M: Alignment match (can be a sequence match or mismatch)
+\item I: Insertion to the reference
+\item D: Deletion from the reference
+\item S: Soft clipping (clipped sequences present in SEQ)
+\item H: Hard clipping (clipped sequences NOT present in SEQ)
+\item N: Skipped region from the reference
+\item P: Padding (silent deletion from the padded reference)
+\item X: Sequence match
+\item =: Sequence mismatch
+\end{{itemize}}
+
+\section{{Partially mapped reads}}
+The number of partially mapped reads is {partially_mapped}.
+
+\section{{Unmapped reads}}
+The number of unmapped reads is {unmapped}.
+
+
+\end{{document}}""".format(M=results["M"], I=results["I"], D=results["D"], S=results["S"], H=results["H"],
+                           N=results["N"], P=results["P"], X=results["X"], E=results["="],
+                           partially_mapped=results["partially_mapped"], unmapped=results["unmapped"])
+
+    with open(f"./{path}/{fileName}.tex", "w") as file:
+        file.write(latex_content)
+
+    # Compile the .tex file to a .pdf file
+    subprocess.run(["pdflatex", "-interaction=batchmode","-output-directory", f"./{path}", f"./{path}/{fileName}.tex"])
+
 
 #### Main function ####
 
@@ -125,12 +179,23 @@ def main(argv):
         Main function
     """
     inputfile, outputfile, trusted = getOptions(argv)
+    # Create a folder to store the output files
+    if outputfile == "": outputfile = inputfile
+    if not os.path.exists(f"{inputfile} results"):
+        os.makedirs(f"{inputfile} results")
     if trusted:
         print("Skipping the format check...")
         clean = checkFormat(inputfile, trusted=trusted)
     else:
         clean = checkFormat(inputfile, trusted=trusted)
-    # print(clean)
+    results = {}
+    results["partially_mapped"], results["unmapped"] = partiallyMappedOrUnmapped(clean, f"{inputfile} results")
+    outputTableCigar(clean, f"{inputfile} results")
+    recap = globalPercentCigar(f"{inputfile} results")
+    for key, value in recap.items():
+        results[key] = value
+    Summary(outputfile, results,f"{inputfile} results")
+
     
 
 ############### LAUNCH THE SCRIPT ###############

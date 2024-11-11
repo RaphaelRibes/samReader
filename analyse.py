@@ -1,4 +1,7 @@
 import re
+import json
+from tqdm.auto import tqdm
+import pandas as pd
 
 #### Convert to binary ####
 def toBinary(load, exponent):
@@ -20,121 +23,112 @@ def toBinary(load, exponent):
     return "".join(flagB)  # We return the flag in binary format.
 
 
-#### Analyze the unmapped reads (not paired) ####
-def unmapped(sam_line):
-    unmapped_count = 0
-    with open("only_unmapped.fasta", "a+") as unmapped_fasta, open("summary_unmapped.txt", "w") as summary_file:
-        for line in sam_line:
-            col_line = line.split("\t")
-            flag = toBinary(col_line[1], 16)
-
-            if int(flag[-3]) == 1:
-                unmapped_count += 1
-                unmapped_fasta.write(toBinary(line, 16))
-
-        summary_file.write("Total unmapped reads: " + str(unmapped_count) + "\n")
-        return unmapped_count
+def toFasta(line):
+    header = line['qname']
+    pos = line['pos']
+    sequence = line['seq']
+    fasta_format = f">{header} pos:{pos}\n{sequence}\n" if pos != "0" else f">{header}\n{sequence}\n"
+    return fasta_format
 
 
-#### Analyze the partially mapped reads ####
-def partiallyMapped(sam_line):
+#### Analyze the partially mapped or unmapped reads ####
+def partiallyMappedOrUnmapped(payload, path):
     partially_mapped_count = 0
+    unmapped_count = 0
 
-    with open("only_partially_mapped.fasta", "a+") as partillay_mapped_fasta, open("summary_partially_mapped.txt",
-                                                                                   "w") as summary_file:
-        for line in sam_line:
-            col_line = line.split("\t")
-            flag = toBinary(col_line[1], 16)  # We compute the same
+    with (open(f"./{path}/only_partially_mapped.fasta", "w") as partillay_mapped_fasta,
+          open(f"./{path}/only_unmapped.fasta", "w") as outputTable):
+        for line in tqdm(payload, desc="Analyzing partially mapped and unmapped reads", total=len(payload)):
+            flag = toBinary(line["flag"], 16)  # We compute the same
 
             if int(flag[-2]) == 1:
-                if col_line[5] != "100M":
+                if line['cigar'] != "100M":
                     partially_mapped_count += 1
-                    partillay_mapped_fasta.write(toStringOutput(line))
+                    partillay_mapped_fasta.write(toFasta(line))
+            if int(flag[-3]) == 1:
+                unmapped_count += 1
+                outputTable.write(toFasta(line))
 
-        summary_file.write("Total partially mapped reads: " + str(partially_mapped_count) + "\n")
-        return partially_mapped_count
+        return partially_mapped_count, unmapped_count
 
 
 ### Analyse the CIGAR = regular expression that summarise each read alignment ###
 def readCigar(cigar):
-    ext = re.findall('w', cigar)  # split cigar
-    key = []
-    value = []
-    val = ""
-
-    for i in range(0, len(ext)):  # For each numeric values or alpha numeric
-        if (ext[i] == 'M' or ext[i] == 'I' or ext[i] == 'D' or ext[i] == 'S' or ext[i] == 'H' or ext[i] == "N" or ext[
-            i] == 'P' or ext[i] == 'X' or ext[i] == '='):
-            key.append(ext[i])
-            value.append(val)
-            val = ""
-        else:
-            val = "" + val + ext[i]  # Else concatenate in order of arrival
-
     dico = {}
-    n = 0
-    for k in key:  # Dictionnary contruction in range size lists
-        if k not in dico.keys():  # for each key, insert int value
-            dico[k] = int(value[n])  # if key not exist, create and add value
-            n += 1
-        else:
-            dico[k] += int(value[n])  # inf key exist add value
-            n += 1
+
+    if cigar == "*": return dico
+
+    regex = r"\*|([0-9]+[MIDNSHPX=])"
+    ext = re.findall(regex, cigar, re.MULTILINE)  # split cigar
+
+    for cig in ext:
+        dico[cig[-1]] = int(cig[:-1])
+        # cig[-1] gives the type of mutation (M, I, D, S, H, N, P, X, = or *)
+        # cig[:-1] gives the number of mutation
+
     return dico
 
 
 ### Analyse the CIGAR = regular expression that summarise each read alignment ###
 def percentMutation(dico):
-    totalValue = 0  # Total number of mutations
-    for v in dico:
-        totalValue += dico[v]
-
+    totalValue = sum(dico.values())
     mutList = ['M', 'I', 'D', 'S', 'H', 'N', 'P', 'X', '=']
     res = ""
     for mut in mutList:  # Calculated percent of mutation if mut present in the dictionnary, else, percent of mut = 0
         if mut in dico.keys():
-            res += (str(round((dico[mut] * 100) / totalValue, 2)) + ";")
+            res += (str(round((dico[mut] * 100) / totalValue, 2)) + ",")
         else:
-            res += ("0.00" + ";")
-    return res
+            res += ("0.00" + ",")
+    return res[:-1]  # We remove the last coma
 
 
-def globalPercentCigar():
+def outputTableCigar(payload, path):
+    with open(f"./{path}/outpuTable_cigar.csv", "w") as outputTable:
+        outputTable.write("M,I,D,S,H,N,P,X,=\n")
+        for n, line in enumerate(tqdm(payload, desc="Analyzing CIGAR", total=len(payload))):
+            dico = readCigar(line["cigar"])
+            percentMut = percentMutation(dico) + "\n"
+            outputTable.write(percentMut)
+
+
+def globalPercentCigar(path):
     """
       Global representation of cigar distribution.
     """
+    df = pd.read_csv(f"./{path}/outpuTable_cigar.csv")
+    final = {}
 
-    with open("outpuTable_cigar.txt", "r") as outpuTable, open("Final_Cigar_table.txt", "w") as FinalCigar:
-        nbReads, M, I, D, S, H, N, P, X, Egal = [0 for n in range(10)]
+    metrics = {
+        "M": df['M'].sum(),
+        "I": df['I'].sum(),
+        "D": df['D'].sum(),
+        "S": df['S'].sum(),
+        "H": df['H'].sum(),
+        "N": df['N'].sum(),
+        "P": df['P'].sum(),
+        "X": df['X'].sum(),
+        "=": df['='].sum()
+    }
+    meanings = ["Alignment Match", 'Insertion', 'Deletion', 'Skipped region', 'Soft Clipping', 'Hard Clipping',
+                'Padding', 'Sequence Match', 'Sequence Mismatch']
+    nbReads = len(df)
 
-        for line in outpuTable:
-            mutValues = line.split(";")
-            nbReads += 2
-            M += float(mutValues[2]) + float(mutValues[12])
-            I += float(mutValues[3]) + float(mutValues[13])
-            D += float(mutValues[4]) + float(mutValues[14])
-            S += float(mutValues[5]) + float(mutValues[15])
-            H += float(mutValues[6]) + float(mutValues[16])
-            N += float(mutValues[7]) + float(mutValues[17])
-            P += float(mutValues[8]) + float(mutValues[18])
-            X += float(mutValues[9]) + float(mutValues[19])
-            Egal += float(mutValues[10]) + float(mutValues[20])
+    def format_metric(value):
+        mid = str(round(value / nbReads, 2))
+        if value / nbReads == 0:
+            mid = "0"
+        elif value / nbReads < 0.01:
+            mid = "$<$0.01"
+        return mid+"\%"
 
-        FinalCigar.write("Global cigar mutation observed :" + "\n"
-                         + "Alignlent Match : " + str(round(M / nbReads, 2)) + "\n"
-                         + "Insertion : " + str(round(I / nbReads, 2)) + "\n"
-                         + "Deletion : " + str(round(D / nbReads, 2)) + "\n"
-                         + "Skipped region : " + str(round(S / nbReads, 2)) + "\n"
-                         + "Soft Clipping : " + str(round(H / nbReads, 2)) + "\n"
-                         + "Hard Clipping : " + str(round(N / nbReads, 2)) + "\n"
-                         + "Padding : " + str(round(P / nbReads, 2)) + "\n"
-                         + "Sequence Match : " + str(round(Egal / nbReads, 2)) + "\n"
-                         + "Sequence Mismatch : " + str(round(X / nbReads, 2)) + "\n")
+    for typ, value in metrics.items():
+        final[typ] = format_metric(value)
 
-        return FinalCigar
+    return final
+
 
 def main():
-    print(toBinary("-15", 16))
+    pass
 
 
 if __name__ == "__main__":

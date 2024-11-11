@@ -8,7 +8,7 @@ import sys
 
 def display_error_context(valist:list, problematic_param:str) -> str:
     # Define the parameter list
-    param_list = ["qname", "flags", "rname", "pos", "mapq", "cigar", "rnext", "pnext", "tlen", "seq", "qual"]
+    param_list = ["qname", "flag", "rname", "pos", "mapq", "cigar", "rnext", "pnext", "tlen", "seq", "qual"]
 
     # Check if the problematic parameter is in the list
     if problematic_param not in param_list:
@@ -40,7 +40,7 @@ def payload_tolist(payload:dict) -> list:
 def line_to_payload(line:list, n:int) -> dict:
     payload = {
         "qname": line[0],
-        "flags": line[1],
+        "flag": line[1],
         "rname": line[2],
         "pos": line[3],
         "mapq": line[4],
@@ -58,7 +58,7 @@ def line_to_payload(line:list, n:int) -> dict:
 def qname(tested: str) -> bool:
     return re.match(r"[!-?A-~]{1,254}", tested) is not None
 
-def flags(tested: str) -> bool:
+def flag(tested: str) -> bool:
     if not tested.replace('-', '').isdigit():
         return False
     return re.match(r"[01]{16}", toBinary(tested, 16)) is not None
@@ -103,7 +103,7 @@ def check_line(payload:dict, trusted=False) -> None:
     Check all the fields of the payload
     The payload is a dictionary with the following keys
     - qname: str
-    - flags: int
+    - flag: int
     - rname: str
     - pos: int
     - mapq: int
@@ -130,11 +130,11 @@ def check_line(payload:dict, trusted=False) -> None:
               f'Expected : {payload["qname"]} to be a string following this regex [!-?A-~]{"{1,254}"}')
         sys.exit(2)
 
-    # col 2 : FLAGS -> int() following regex [01]{12,16}
-    if not flags(payload["flags"]):
+    # col 2 : FLAG -> int() following regex [01]{12,16}
+    if not flag(payload["flag"]):
         print(f'Error with FLAG line {payload['line']} :'
-              f'\n{display_error_context(payload_values, "flags")}\n'
-              f'Expected : {payload["flags"]} to be a integer ranging from 0 to 65535')
+              f'\n{display_error_context(payload_values, "flag")}\n'
+              f'Expected : {payload["flag"]} to be a integer ranging from 0 to 65535')
         sys.exit(2)
 
     # col 3 : RNAME -> str() following this regex \*|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*
@@ -204,7 +204,7 @@ def check_line(payload:dict, trusted=False) -> None:
 def main():
     payload_values = ["1", "22222222222", "3", 4]
     print(f'Error line {1} :'
-          f'\n{display_error_context(payload_values, "flags")}\n'
+          f'\n{display_error_context(payload_values, "flag")}\n'
          f'Expected : {1} to be a string following this regex [!-?A-~]{"{1,254}"}')
 if __name__ == "__main__":
     main()
