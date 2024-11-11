@@ -1,75 +1,80 @@
-                                        ____                      __              
-           _____  ____ _   ____ ___    / __ \  ___   ____ _  ____/ /  ___    _____
-          / ___/ / __ `/  / __ `__ \  / /_/ / / _ \ / __ `/ / __  /  / _ \  / ___/
-         (__  ) / /_/ /  / / / / / / / _, _/ /  __// /_/ / / /_/ /  /  __/ / /    
-        /____/  \__,_/  /_/ /_/ /_/ /_/ |_|  \___/ \__,_/  \__,_/   \___/ /_/     
-                                                                                  
 
-does not even start yet don't look at this for now
+                                    ____                      __              
+       _____  ____ _   ____ ___    / __ \  ___   ____ _  ____/ /  ___    _____
+      / ___/ / __ `/  / __ `__ \  / /_/ / / _ \ / __ `/ / __  /  / _ \  / ___/
+     (__  ) / /_/ /  / / / / / / / _, _/ /  __// /_/ / / /_/ /  /  __/ / /    
+    /____/  \__,_/  /_/ /_/ /_/ /_/ |_|  \___/ \__,_/  \__,_/   \___/ /_/     
+`samReader` is a Python tool designed to analyze SAM files, providing insights into partially mapped and unmapped reads, as well as detailed CIGAR string analysis.
 
-## Abstract
+## Features
 
-Next-generation sequencing (NGS) technologies have revolutionized genomics by enabling the analysis of short DNA sequences (reads).
-This project focuses on the analysis of Sequence Alignment/Map (SAM) files, which store the results of aligning these reads to a reference genome. 
-The aim of this project is to develop a hybrid Python/Shell script that efficiently extracts and summarizes key information from SAM files.
+- **Partially Mapped and Unmapped Reads Analysis**: Identifies and reports reads that are partially mapped or unmapped.
+- **CIGAR String Analysis**: Offers detailed analysis of CIGAR strings to understand alignment patterns.
+- **Summary Reports**: Generates comprehensive summaries of the analyses in both text and LaTeX formats.
 
-The objectives are:
-1. **Mapping Read Counts**: Determine how many reads are mapped by counting reads based on their mapping status as indicated by SAM flags.
-2. **Read Mapping Patterns**: Analyze how reads (and pairs of reads) are mapped by categorizing them according to different SAM flags, revealing patterns of proper or improper alignment.
-3. **Read Distribution Across the Genome**: Assess the distribution of reads along the reference genome, including per-chromosome read counts, to evaluate the uniformity of mapping.
-4. **Mapping Quality**: Evaluate the quality of read alignments by analyzing mapping scores, either as discrete values or within score ranges, to understand the confidence in each alignment.
+## Requirements
 
-This project will provide a clear summary of the mapping characteristics, enabling a deeper understanding of the sequence alignment process, which is critical for various applications in genomics and bioinformatics.
-
-## Usage
-
-The main script `sam_reader.sh` is a shell script that calls a Python script `sam_reader.py` to process SAM files.
-The script can take the following arguments:
-- -h or --help : help information
-- -i or --input: input file (.sam)
-- -o or --output: output name files (.txt)
-- -t or --trusted: assumes the input file is trusted and skips the verification step (optional)
+- Python 3.13 or higher
+- Required Python packages:
+  - `tqdm`
+  - `pandas`
+  - `numpy`
+  - `matplotlib`
+  - `seaborn`
+  - `pysam`
 
 ## Installation
 
-This script requires Python 3.13. It is not guaranteed to work with older versions of Python.
+1. **Clone the Repository**:
 
-To use this script, you need to have Python installed on your system.
-You can download the script directly from this repository or clone the repository using the following command:
+   ```bash
+   git clone https://github.com/RaphaelRibes/samReader.git
+   ```
+
+2. **Navigate to the Directory**:
+
+   ```bash
+   cd samReader
+   ```
+
+3. **Install Dependencies**:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## Usage
+
+To run `samReader`, execute the following command:
 
 ```bash
-git clone https://github.com/RaphaelRibes/samReader.git
+bash samReader.sh -i /path/to/your/mapping.sam
 ```
 
-Install the required Python packages using the following command:
+### Options
 
-```bash
-pip install -r requirements.txt
-```
+- `-i`: Path to the input SAM file.
+- `-o`: (Optional) Specify the output directory. If not provided, the output will be saved in the current directory. Doesn't work right now.
+- `-t`: (Optional) Trust the input format without performing format checks.
 
-## Example
+## Output
 
-To run the script, use the following command:
+The tool generates the following outputs:
 
-```bash
-bash sam_reader.sh -i example.sam -o example_output
-```
+- **Partially Mapped Reads**: A FASTA file (`only_partially_mapped.fasta`) containing sequences of partially mapped reads.
+- **Unmapped Reads**: A FASTA file (`only_unmapped.fasta`) containing sequences of unmapped reads.
+- **Summary Report**: A text file (`summary.pdf`) containing a summary of the analyses.
 
-This command will process the `example.sam` file and generate output files with the prefix `example_output`.
+## Contributing
 
-## Aknowledgements
-
-ASCII art generated with https://patorjk.com/software/taag/
+Contributions are welcome! Please fork the repository and submit a pull request with your changes.
 
 ## License
 
-This program is free software: you can redistribute it and/or modify
-        it under the terms of the GNU General Public License as published by
-        the Free Software Foundation, either version 3 of the License, or
-        (at your option) any later version.
-        This program is distributed in the hope that it will be useful,
-        but WITHOUT ANY WARRANTY; without even the implied warranty of
-        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-        GNU General Public License for more details.
-        You should have received a copy of the GNU General Public License
-        along with this program. If not, see <https://www.gnu.org/licenses/>.
+This project is licensed under the MIT License. See the [GNU General Public Licence](https://www.gnu.org/licenses/) file for details.
+
+## Acknowledgments
+
+Special thanks to all contributors and the open-source community for their invaluable support.
+
+ASCII art generated with https://patorjk.com/software/taag/
