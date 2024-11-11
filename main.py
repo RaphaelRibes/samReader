@@ -169,7 +169,7 @@ The number of unmapped reads is {unmapped}.
         file.write(latex_content)
 
     # Compile the .tex file to a .pdf file
-    subprocess.run(["pdflatex", "-interaction=batchmode","-output-directory", f"./{path}", f"./{path}/{fileName}.tex"])
+    subprocess.run(["latexmk", "-quiet", f"--output-directory=./{path}", "-pdf", f"./{path}/{fileName}.tex"])
 
 
 #### Main function ####
