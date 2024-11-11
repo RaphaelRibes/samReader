@@ -1,6 +1,3 @@
-from curses.ascii import isdigit
-
-import tqdm
 import re
 from analyse import toBinary
 import sys

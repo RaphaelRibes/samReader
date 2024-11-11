@@ -46,7 +46,8 @@ done
 
 # if the file is trusted, we don't check the content
 if [ ! -z "$trusted" ]; then
-    python3 main.py -i "$input_file" -o "$output_file" -t
+    export USER_START_DIR="$(pwd)"
+    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" -t
     exit 0
 fi
 
@@ -67,8 +68,8 @@ fi
 
 # If there is a output file, check if the path of the output file is correct or not
 if [ ! -z "$output_file" -a ! -d "$output_file" ]; then
-    echo "The output file does not exist. Please provide the correct path."
-    exit 1
+    # We create the folder
+    mkdir -p "$(dirname "$output_file")"
 fi
 
 # Check if the sam file is a directory or not
@@ -97,4 +98,6 @@ fi
         ##-h or --help : help information
         ##-i or --input: input file (.sam)
         ##-o or --output: output name files (.txt)
-python3 main.py -i "$input_file" -o "$output_file"
+# Make sure to include the right path from where the command is executed
+export USER_START_DIR="$(pwd)"
+python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file"

@@ -1,7 +1,7 @@
 import re
-import json
 from tqdm.auto import tqdm
 import pandas as pd
+import os
 
 #### Convert to binary ####
 def toBinary(load, exponent):
@@ -36,8 +36,8 @@ def partiallyMappedOrUnmapped(payload, path):
     partially_mapped_count = 0
     unmapped_count = 0
 
-    with (open(f"./{path}/only_partially_mapped.fasta", "w") as partillay_mapped_fasta,
-          open(f"./{path}/only_unmapped.fasta", "w") as outputTable):
+    with (open(f"{path}/only_partially_mapped.fasta", "w") as partillay_mapped_fasta,
+          open(f"{path}/only_unmapped.fasta", "w") as outputTable):
         for line in tqdm(payload, desc="Analyzing partially mapped and unmapped reads", total=len(payload)):
             flag = toBinary(line["flag"], 16)  # We compute the same
 
@@ -83,46 +83,50 @@ def percentMutation(dico):
 
 
 def outputTableCigar(payload, path):
-    with open(f"./{path}/outpuTable_cigar.csv", "w") as outputTable:
+    with open(f"{path}/outpuTable_cigar.csv", "w") as outputTable:
         outputTable.write("M,I,D,S,H,N,P,X,=\n")
         for n, line in enumerate(tqdm(payload, desc="Analyzing CIGAR", total=len(payload))):
             dico = readCigar(line["cigar"])
-            percentMut = percentMutation(dico) + "\n"
-            outputTable.write(percentMut)
+            if dico != {}:
+                percentMut = percentMutation(dico) + "\n"
+                outputTable.write(percentMut)
 
 
 def globalPercentCigar(path):
     """
-      Global representation of cigar distribution.
-    """
-    df = pd.read_csv(f"./{path}/outpuTable_cigar.csv")
-    final = {}
+    Global representation of cigar distribution.
 
-    metrics = {
-        "M": df['M'].sum(),
-        "I": df['I'].sum(),
-        "D": df['D'].sum(),
-        "S": df['S'].sum(),
-        "H": df['H'].sum(),
-        "N": df['N'].sum(),
-        "P": df['P'].sum(),
-        "X": df['X'].sum(),
-        "=": df['='].sum()
-    }
-    meanings = ["Alignment Match", 'Insertion', 'Deletion', 'Skipped region', 'Soft Clipping', 'Hard Clipping',
-                'Padding', 'Sequence Match', 'Sequence Mismatch']
-    nbReads = len(df)
+    Args:
+        path (str): The path to the directory containing the 'outpuTable_cigar.csv' file.
+
+    Returns:
+        dict: A dictionary where the keys are the mutation types and the values are the formatted percentages of each mutation type.
+    """
+    df = pd.read_csv(f"{path}/outpuTable_cigar.csv")  # Read the CSV file into a DataFrame
+    nbReads = len(df)  # Get the number of reads
+    metrics = {col: df[col].sum() for col in df.columns}  # Calculate the sum of each column
 
     def format_metric(value):
+        """
+        Format the metric value as a percentage string.
+
+        Args:
+            value (int): The sum of a specific mutation type.
+
+        Returns:
+            str: The formatted percentage string.
+        """
         mid = str(round(value / nbReads, 2))
         if value / nbReads == 0:
             mid = "0"
         elif value / nbReads < 0.01:
             mid = "$<$0.01"
-        return mid+"\%"
+        return mid + "\\%"
 
-    for typ, value in metrics.items():
-        final[typ] = format_metric(value)
+    final = {typ: format_metric(value) for typ, value in metrics.items()}  # Create the final dictionary with formatted metrics
+
+    # Delete outPutTable_cigar.csv
+    os.remove(f"{path}/outpuTable_cigar.csv")
 
     return final
 

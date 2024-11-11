@@ -5,7 +5,7 @@
 __author__ = "Raphaël RIBES"
 __contact__ = "raphael.ribes@etu.umontpellier.fr"
 __version__ = "0.0.1"
-__date__ = "12/14/2021"
+__date__ = "11/11/2024"
 __licence__ ="""This program is free software: you can redistribute it and/or modify
         it under the terms of the GNU General Public License as published by
         the Free Software Foundation, either version 3 of the License, or
@@ -35,11 +35,10 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
 ############### IMPORT MODULES ###############
 
-import os, sys, getopt, json, subprocess
+import os, sys, getopt, subprocess, shutil
 from tqdm.auto import tqdm
 from checks import check_line, line_to_payload
 from analyse import partiallyMappedOrUnmapped, outputTableCigar, globalPercentCigar
-import pandas as pd
 
 ############### FUNCTIONS TO :
 ## 0/ Get options,
@@ -165,11 +164,24 @@ The number of unmapped reads is {unmapped}.
                            N=results["N"], P=results["P"], X=results["X"], E=results["="],
                            partially_mapped=results["partially_mapped"], unmapped=results["unmapped"])
 
-    with open(f"./{path}/{fileName}.tex", "w") as file:
+    with open(f"{path}/{fileName}.tex", "w") as file:
         file.write(latex_content)
 
     # Compile the .tex file to a .pdf file
-    subprocess.run(["latexmk", "-quiet", f"--output-directory=./{path}", "-pdf", f"./{path}/{fileName}.tex"])
+    subprocess.run(["latexmk", "-quiet", f"--output-directory={path}/temp", "-pdf", f"{path}/{fileName}.tex"])
+    # Move the .pdf file to the main directory
+    subprocess.run(["mv", f"{path}/temp/{fileName}.pdf", f"{path}/{fileName}.pdf"])
+    # Remove the temp folder
+    os.remove(f"{path}/{fileName}.tex")
+    shutil.rmtree(f"{path}/temp")
+
+    print(f'The results are available in the file {path}/{fileName}.pdf')
+    yn = input("Do you want to open the file ? (y/n) ")
+    if yn == "y":
+        subprocess.run(["xdg-open", f"{path}/{fileName}.pdf"])
+    else:
+        # exit
+        sys.exit(0)
 
 
 #### Main function ####
@@ -180,23 +192,29 @@ def main(argv):
     """
     inputfile, outputfile, trusted = getOptions(argv)
     # Create a folder to store the output files
-    if outputfile == "": outputfile = inputfile
-    if not os.path.exists(f"{inputfile} results"):
-        os.makedirs(f"{inputfile} results")
+    if outputfile == "": outputfile = os.path.basename(inputfile)
+
+    user_start_dir = os.getenv("USER_START_DIR", os.getcwd())
+    results_dir = os.path.join(user_start_dir, f"{outputfile}_results")
+
+    os.makedirs(results_dir, exist_ok=True)
     if trusted:
         print("Skipping the format check...")
         clean = checkFormat(inputfile, trusted=trusted)
     else:
         clean = checkFormat(inputfile, trusted=trusted)
+
     results = {}
-    results["partially_mapped"], results["unmapped"] = partiallyMappedOrUnmapped(clean, f"{inputfile} results")
-    outputTableCigar(clean, f"{inputfile} results")
-    recap = globalPercentCigar(f"{inputfile} results")
+    results["partially_mapped"], results["unmapped"] = partiallyMappedOrUnmapped(clean, results_dir)
+
+    outputTableCigar(clean, results_dir)
+
+    recap = globalPercentCigar(results_dir)
     for key, value in recap.items():
         results[key] = value
-    Summary(outputfile, results,f"{inputfile} results")
 
-    
+    Summary("summary", results, results_dir)
+
 
 ############### LAUNCH THE SCRIPT ###############
 
