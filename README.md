@@ -9,7 +9,6 @@
 ## Features
 
 - **Partially Mapped and Unmapped Reads Analysis**: Identifies and reports reads that are partially mapped or unmapped.
-- **CIGAR String Analysis**: Offers detailed analysis of CIGAR strings to understand alignment patterns.
 - **Summary Reports**: Generates comprehensive summaries of the analyses in both text and LaTeX formats.
 
 ## Requirements
