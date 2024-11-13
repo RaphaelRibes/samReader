@@ -1,9 +1,8 @@
-
-                                    ____                      __              
-       _____  ____ _   ____ ___    / __ \  ___   ____ _  ____/ /  ___    _____
-      / ___/ / __ `/  / __ `__ \  / /_/ / / _ \ / __ `/ / __  /  / _ \  / ___/
-     (__  ) / /_/ /  / / / / / / / _, _/ /  __// /_/ / / /_/ /  /  __/ / /    
-    /____/  \__,_/  /_/ /_/ /_/ /_/ |_|  \___/ \__,_/  \__,_/   \___/ /_/     
+                                    ____                      __
+       _____  ______   ____ ___    / __ \  ___   ______  ____/ /  ___    _____
+      / ___/ / __  /  / __ __  \  / /_/ / / _ \ / __  / / __  /  / _ \  / ___/
+     (__  ) / /_/ /  / / / / / / / _, _/ /  __// /_/ / / /_/ /  /  __/ / /
+    /____/  \____/  /_/ /_/ /_/ /_/ |_|  \___/ \____/  \____/   \___/ /_/
 `samReader` is a Python tool designed to analyze SAM files, providing insights into partially mapped and unmapped reads, as well as detailed CIGAR string analysis.
 
 ## Features
@@ -76,4 +75,4 @@ This project is licensed under the MIT License. See the [GNU General Public Lice
 
 Special thanks to all contributors and the open-source community for their invaluable support.
 
-ASCII art generated with https://patorjk.com/software/taag/
+ASCII art based on this generator https://patorjk.com/software/taag/
