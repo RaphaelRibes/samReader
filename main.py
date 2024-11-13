@@ -24,6 +24,8 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
         ## -i or --input: input file (.sam)
         ## -o or --output: output name files (.txt)
         ## -t or --trusted: trusted mode (skip the format check)
+        ## -v or --verbose: verbose mode
+        ## -s or --single: single mode (only one file for output)
 
     #Synopsis:
         ## samReader.sh -h or --help # launch the help.
@@ -35,7 +37,7 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
 ############### IMPORT MODULES ###############
 
-import os, sys, getopt, json
+import os, sys, getopt
 from tqdm.auto import tqdm
 
 from checks import check_line, line_to_payload
@@ -46,21 +48,22 @@ from summarize import summarize
 ## 0/ Get options,
 def getOptions(argv):
     """
-        Get the parsed options
+    Get the parsed options, supporting both short and long forms
     """
     try:
-        opts, args = getopt.getopt(argv, "thi:o:", ["trusted", "help", "input=", "output="])
-    except getopt.GetoptError:  # Is there even a way to trigger this error ? Probably not, but it's here just in case
-        # execute a bash command
-        os.system("samReader.sh -h")  # print the help
+        opts, args = getopt.getopt(argv, "hi:o:tvs", ["help", "input=", "output=", "trusted", "verbose", "single"])
+    except getopt.GetoptError:
+        os.system("samReader.sh -h")
         sys.exit(2)
 
     inputfile = ""
     outputfile = ""
     trusted = False
+    verbose = False
+    single_pdf = False  # Nouveau flag pour un seul PDF
     for opt, arg in opts:
         if opt in ("-h", "--help"):
-            print("samReader.sh -i <inputfile> -o <outputfile>")
+            print("samReader.sh -i <inputfile> -o <outputfile> [-t] [-v] [-s]")
             sys.exit()
         elif opt in ("-i", "--input"):
             inputfile = arg
@@ -68,7 +71,12 @@ def getOptions(argv):
             outputfile = arg
         elif opt in ("-t", "--trusted"):
             trusted = True
-    return inputfile, outputfile, trusted
+        elif opt in ("-v", "--verbose"):
+            verbose = True
+        elif opt in ("-s", "--single"):
+            single_pdf = True
+    return inputfile, outputfile, trusted, verbose, single_pdf
+
 
 ## Check, Read and store the data
 
@@ -98,8 +106,6 @@ def checkFormat(file, trusted=False):
             check_line(payload, trusted=trusted)
             qname = payload['qname'].split('-')[0]
 
-            if qname == "toto": print(toBinary(payload['flag'], 16)[-3])
-
             if qname not in clean:
                 clean[qname] = []
 
@@ -120,7 +126,7 @@ def main(argv):
     """
         Main function
     """
-    inputfile, outputfile, trusted = getOptions(argv)
+    inputfile, outputfile, trusted, verbose, single_pdf = getOptions(argv)
     # Create a folder to store the output files
     if outputfile == "": outputfile = os.path.basename(inputfile)
 

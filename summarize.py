@@ -60,7 +60,10 @@ Unmapped & {unmapped} \\
         file.write(latex_content)
 
     # Compile the .tex file to a .pdf file
-    subprocess.run(["latexmk", "-quiet", f"--output-directory={path}/temp", "-pdf", f"{path}/{fileName}.tex"])
+    with open(os.devnull, 'w') as devnull:
+        subprocess.run(["latexmk", "-silent", f"--output-directory={path}/temp", "-pdf", f"{path}/{fileName}.tex"],
+                       stdout=devnull, stderr=devnull)
+
     # Move the .pdf file to the main directory
     subprocess.run(["mv", f"{path}/temp/{fileName}.pdf", f"{path}/{fileName}.pdf"])
 

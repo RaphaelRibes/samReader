@@ -1,53 +1,68 @@
 #!/bin/bash
 
-# Variables pour stocker les chemins d'entrée et de sortie
-input_file=""
-output_file=""
-trusted=""
-
-# Fonction pour afficher l'aide
+# Function to display the help message
 usage() {
   echo "                                ____                      __              "
-  echo "   _____  ____ _   ____ ___    / __ \  ___   ____ _  ____/ /  ___    _____"
-  echo "  / ___/ / __ \`/  / __ \`__ \  / /_/ / / _ \ / __ \`/ / __  /  / _ \  / ___/"
+  echo "   _____  ______   ____ ___    / __ \  ___   ______  ____/ /  ___    _____"
+  echo "  / ___/ / __  /  / __ \`__ \  / /_/ / / _ \ / __  / / __  /  / _ \  / ___/"
   echo " (__  ) / /_/ /  / / / / / / / _, _/ /  __// /_/ / / /_/ /  /  __/ / /    "
-  echo "/____/  \__,_/  /_/ /_/ /_/ /_/ |_|  \___/ \__,_/  \__,_/   \___/ /_/     "
-
-  echo "Usage: $0 [-h|--help] [-i|--input input_file] [-o|--output output_file]"
+  echo "/____/  \____/  /_/ /_/ /_/ /_/ |_|  \___/ \____/  \____/   \___/ /_/     "
+  echo
+  echo "Usage: $0 [-h|--help] [-i|--input input_file] [-o|--output output_file] [-t|--trusted] [-v|--verbose] [-s|--single]"
   echo
   echo "Options:"
-  echo "  -h, --help                Affiche ce message d'aide"
-  echo "  -i, --input <fichier>     Spécifie le fichier d'entrée"
-  echo "  -o, --output <fichier>    Spécifie le fichier de sortie"
-  echo "  -t, --trusted             Ne vérifie pas le contenu du fichier d'entrée"
-  exit 1
+  echo "  -h, --help                Displays this help message"
+  echo "  -i, --input <file>        Specifies the input file"
+  echo "  -o, --output <file>       Specifies the output directory"
+  echo "  -t, --trusted             Skips checking the content of the input file"
+  echo "  -v, --verbose             Shows details of each step"
+  echo "  -s, --single              Creates only one output file"
+  exit
 }
 
-# Traitement des options
-while [[ "$1" != "" ]]; do
-    case $1 in
-        -h | --help )   usage
-                        exit
-                        ;;
-        -i | --input)   shift
-                        input_file=$1
-                        ;;
-        -o | --output)  shift
-                        output_file=$1
-                        ;;
-        # this option does not require an argument
-        -t | --trusted) trusted="true"
-                        ;;
-        * )             usage
-                        exit 1
+# Using getopt to support both short and long options
+PARSED_OPTIONS=$(getopt -o "hi:o:tvs" -l "help,input:,output:,trusted,verbose,single" -n "$0" -- "$@")
+if [ $? != 0 ]; then
+    echo "Error in options"
+    exit 1
+fi
+
+# Apply the parsed options
+eval set -- "$PARSED_OPTIONS"
+
+# Default variables
+input_file=""
+output_file=""
+trusted=false
+verbose=false
+single_pdf=false
+
+# Parsing options
+while true; do
+    case "$1" in
+        -h|--help)
+            usage;;
+        -i|--input)
+            input_file=$2; shift 2;;
+        -o|--output)
+            output_file=$2; shift 2;;
+        -t|--trusted)
+            trusted=true; shift;;
+        -v|--verbose)
+            verbose=true; shift;;
+        -s|--single)
+            single_pdf=true; shift;;
+        --)
+            shift; break;;
+        *)
+            echo "Unrecognized option"; exit 1;;
     esac
-    shift
 done
 
 # if the file is trusted, we don't check the content
 if [ ! -z "$trusted" ]; then
     export USER_START_DIR="$(pwd)"
-    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" -t
+    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_pdf:+-s}
     exit 0
 fi
 
@@ -100,4 +115,4 @@ fi
         ##-o or --output: output name files (.txt)
 # Make sure to include the right path from where the command is executed
 export USER_START_DIR="$(pwd)"
-python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file"
+python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_pdf:+-s}
