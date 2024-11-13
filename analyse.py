@@ -24,20 +24,23 @@ def toBinary(load, exponent):
 
 
 def toFasta(line):
-    header = line['qname']
+    header = f">{line['qname']} MAPQ:{line['mapq']}"
     pos = line['pos']
+    header = f"{header} pos:{pos}" if pos != "0" else f"{header}"
     sequence = line['seq']
-    fasta_format = f">{header} pos:{pos}\n{sequence}\n" if pos != "0" else f">{header}\n{sequence}\n"
+    fasta_format = f"{header}\n{sequence}\n"
     return fasta_format
 
 
 #### Analyze the partially mapped or unmapped reads ####
-def partiallyMappedOrUnmapped(payload, path):
+def readMapping(payload, path):
     partially_mapped_count = 0
     unmapped_count = 0
+    mapped_count = 0
 
     with (open(f"{path}/only_partially_mapped.fasta", "w") as partillay_mapped_fasta,
-          open(f"{path}/only_unmapped.fasta", "w") as outputTable):
+          open(f"{path}/only_unmapped.fasta", "w") as unmapped_fasta,
+          open(f"{path}/only_mapped.fasta", "w") as mapped_fasta):
         for line in tqdm(payload, desc="Analyzing partially mapped and unmapped reads", total=len(payload)):
             flag = toBinary(line["flag"], 16)  # We compute the same
 
@@ -45,11 +48,15 @@ def partiallyMappedOrUnmapped(payload, path):
                 if line['cigar'] != "100M":
                     partially_mapped_count += 1
                     partillay_mapped_fasta.write(toFasta(line))
-            if int(flag[-3]) == 1:
-                unmapped_count += 1
-                outputTable.write(toFasta(line))
+                else:
+                    mapped_count += 1
+                    mapped_fasta.write(toFasta(line))
 
-        return partially_mapped_count, unmapped_count
+            elif int(flag[-3]) == 1:
+                unmapped_count += 1
+                unmapped_fasta.write(toFasta(line))
+
+        return partially_mapped_count, unmapped_count, mapped_count
 
 
 ### Analyse the CIGAR = regular expression that summarise each read alignment ###
@@ -85,11 +92,11 @@ def percentMutation(dico):
 def outputTableCigar(payload, path):
     with open(f"{path}/outpuTable_cigar.csv", "w") as outputTable:
         outputTable.write("M,I,D,S,H,N,P,X,=\n")
+
         for n, line in enumerate(tqdm(payload, desc="Analyzing CIGAR", total=len(payload))):
             dico = readCigar(line["cigar"])
-            if dico != {}:
-                percentMut = percentMutation(dico) + "\n"
-                outputTable.write(percentMut)
+            percentMut = percentMutation(dico) + "\n"
+            outputTable.write(percentMut)
 
 
 def globalPercentCigar(path):
