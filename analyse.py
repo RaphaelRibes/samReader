@@ -33,30 +33,47 @@ def toFasta(line):
 
 
 #### Analyze the partially mapped or unmapped reads ####
-def readMapping(payload, path):
+def readMapping(payload, path, single_file=False):
     partially_mapped_count = 0
     unmapped_count = 0
     mapped_count = 0
 
-    with (open(f"{path}/only_partially_mapped.fasta", "w") as partillay_mapped_fasta,
-          open(f"{path}/only_unmapped.fasta", "w") as unmapped_fasta,
-          open(f"{path}/only_mapped.fasta", "w") as mapped_fasta):
-        for line in tqdm(payload, desc="Analyzing partially mapped and unmapped reads", total=len(payload)):
-            flag = toBinary(line["flag"], 16)  # We compute the same
+    # Determine file handlers dynamically
+    if single_file:
+        file_handlers = {
+            "partially_mapped": open(f"{path}/all_mapped_reads.fasta", "w"),
+            "unmapped": open(f"{path}/all_mapped_reads.fasta", "a"),  # Append to the same file
+            "mapped": open(f"{path}/all_mapped_reads.fasta", "a"),
+        }
+    else:
+        file_handlers = {
+            "partially_mapped": open(f"{path}/only_partially_mapped.fasta", "w"),
+            "unmapped": open(f"{path}/only_unmapped.fasta", "w"),
+            "mapped": open(f"{path}/only_mapped.fasta", "w"),
+        }
 
-            if int(flag[-2]) == 1:
+    try:
+        for line in tqdm(payload, desc="Analyzing partially mapped and unmapped reads", total=len(payload)):
+            flag = toBinary(line["flag"], 16)  # Compute flag
+
+            if int(flag[-2]) == 1:  # Partially mapped or mapped
                 if line['cigar'] != "100M":
                     partially_mapped_count += 1
-                    partillay_mapped_fasta.write(toFasta(line))
+                    file_handlers["partially_mapped"].write(toFasta(line))
                 else:
                     mapped_count += 1
-                    mapped_fasta.write(toFasta(line))
+                    file_handlers["mapped"].write(toFasta(line))
 
-            elif int(flag[-3]) == 1:
+            elif int(flag[-3]) == 1:  # Unmapped
                 unmapped_count += 1
-                unmapped_fasta.write(toFasta(line))
+                file_handlers["unmapped"].write(toFasta(line))
+    finally:
+        # Ensure all files are closed properly
+        for handler in file_handlers.values():
+            handler.close()
 
-        return partially_mapped_count, unmapped_count, mapped_count
+    return partially_mapped_count, unmapped_count, mapped_count
+
 
 
 ### Analyse the CIGAR = regular expression that summarise each read alignment ###
