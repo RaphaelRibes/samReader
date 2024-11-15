@@ -32,6 +32,8 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
         ## samReader.sh -i or --input <file> # Launch samReader to analyze a samtools file (.sam) and print the result in the terminal
         ## samReader.sh -i or --input <file> -o or --output <name> # Launch samReader to analyze a samtools file (.sam) and print the result in the file called <name>
         ## samReader.sh -i or --input <file> -t or --trusted # Launch samReader to analyze a samtools file (.sam) and skip the format check.
+        ## samReader.sh -i or --input <file> -v or --verbose # Launch samReader to analyze a samtools file (.sam) and print the result in the terminal with more information.
+        ## samReader.sh -i or --input <file> -s or --single # Launch samReader to analyze a samtools file (.sam) and print the result in a single file for summary and another for .fasta files.
   
 
 
@@ -109,10 +111,10 @@ def checkFormat(file, trusted=False):
             if qname not in clean:
                 clean[qname] = []
 
-            clean[payload['qname'].split('-')[0]].append(payload)
+            clean[qname].append(payload)
 
             if len(line) > 11:
-                clean[payload['qname'].split('-')[0]][-1]['extra'] = line[11:]
+                clean[qname][-1]['extra'] = line[11:]
 
         return clean
 
@@ -128,7 +130,7 @@ def main(argv):
     """
     inputfile, outputfile, trusted, verbose, single_pdf = getOptions(argv)
     # Create a folder to store the output files
-    if outputfile == "": outputfile = os.path.basename(inputfile)
+    if outputfile == "": outputfile = os.path.basename(inputfile)[:-4]
 
     user_start_dir = os.getenv("USER_START_DIR", os.getcwd())
     results_dir = os.path.join(user_start_dir, f"{outputfile}_results")
