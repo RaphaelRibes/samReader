@@ -13,13 +13,7 @@
 ## Requirements
 
 - Python 3.13 or higher
-- Required Python packages:
-  - `tqdm`
-  - `pandas`
-  - `numpy`
-  - `matplotlib`
-  - `seaborn`
-  - `pysam`
+- Required Python packages described in requirements.txt
 
 ## Installation
 
@@ -43,7 +37,7 @@
 
 ## Usage
 
-To run `samReader`, execute the following command:
+The minimal command to run `samReader` is described like this:
 
 ```bash
 bash samReader.sh -i /path/to/your/mapping.sam
@@ -51,17 +45,23 @@ bash samReader.sh -i /path/to/your/mapping.sam
 
 ### Options
 
-- `-i`: Path to the input SAM file.
-- `-o`: (Optional) Specify the output directory. If not provided, the output will be saved in the current directory. Doesn't work right now.
-- `-t`: (Optional) Trust the input format without performing format checks.
+- `-i` or `--input`: Path to the input SAM file.
+- `-o` or `--output`: (Optional) Specify the output directory. If not provided, the output will be saved in the current directory. Doesn't work right now.
+- `-t` or `--trusted`: (Optional) Trust the input format without performing format checks.
+- `-v` or `--verbose`: (Optional) Enable verbose mode.
+- `-s` or `--single-fasta`: (Optional) Create only one fasta file per read
 
 ## Output
 
 The tool generates the following outputs:
 
-- **Partially Mapped Reads**: A FASTA file (`only_partially_mapped.fasta`) containing sequences of partially mapped reads.
-- **Unmapped Reads**: A FASTA file (`only_unmapped.fasta`) containing sequences of unmapped reads.
+- **Mapped Reads**¹: A FASTA file (`only_mapped.fasta`) containing sequences of mapped reads.
+- **Partially Mapped Reads**¹: A FASTA file (`only_partially_mapped.fasta`) containing sequences of partially mapped reads.
+- **Unmapped Reads**¹: A FASTA file (`only_unmapped.fasta`) containing sequences of unmapped reads.
 - **Summary Report**: A text file (`summary.pdf`) containing a summary of the analyses.
+
+[1] : *If you have enabled single fasta file mode, you will only have one fasta file like `mapping.fasta`*
+
 
 ## Contributing
 

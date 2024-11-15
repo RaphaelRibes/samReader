@@ -8,15 +8,14 @@ usage() {
   echo " (__  ) / /_/ /  / / / / / / / _, _/ /  __// /_/ / / /_/ /  /  __/ / /    "
   echo "/____/  \____/  /_/ /_/ /_/ /_/ |_|  \___/ \____/  \____/   \___/ /_/     "
   echo
-  echo "Usage: $0 -i|--input input_file <input.sam> [-o|--output <output_directory>] [-t|--trusted] [-v|--verbose] [-s|--single] [-h|--help]"
+  echo "Usage: $0 -i|--input input_file <input.sam> [-o|--output <output_directory>] [-t|--trusted] [-v|--verbose] [-s|--single-fasta] [-h|--help]"
   echo
   echo "Options:"
-  echo "  -h, --help                Displays this help message"
   echo "  -i, --input <file>        Specifies the input file"
-  echo "  -o, --output <directory>  Specifies the output directory (optional, by default the current directory)"
-  echo "  -t, --trusted             Skips checking the content of the input file (optional)"
-  echo "  -v, --verbose             Shows details of each step (optional)"
-  echo "  -s, --single              Creates only one output file for the summary and a single file for .fasta files (optional)"
+  echo "  -o, --output <directory>  (optional) Specifies the output directory (by default the current directory)"
+  echo "  -t, --trusted             (optional) Skips checking the content of the input file"
+  echo "  -v, --verbose             (optional) Shows details of each step"
+  echo "  -s, --single-fasta        (optional) Creates only one output for the fasta file"
   exit
 }
 
@@ -51,7 +50,7 @@ while true; do
             trusted=true; shift;;
         -v|--verbose)
             verbose=true; shift;;
-        -s|--single)
+        -s|--single-fasta)
             single_pdf=true; shift;;
         --)
             shift; break;;

@@ -25,7 +25,7 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
         ## -o or --output: output name files (.txt)
         ## -t or --trusted: trusted mode (skip the format check)
         ## -v or --verbose: verbose mode
-        ## -s or --single: single mode (only one file for output)
+        ## -s or --single: single fasta file mode (only one file for output)
 
     #Synopsis:
         ## samReader.sh -h or --help # launch the help.
@@ -33,7 +33,7 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
         ## samReader.sh -i or --input <file> -o or --output <name> # Launch samReader to analyze a samtools file (.sam) and print the result in the file called <name>
         ## samReader.sh -i or --input <file> -t or --trusted # Launch samReader to analyze a samtools file (.sam) and skip the format check.
         ## samReader.sh -i or --input <file> -v or --verbose # Launch samReader to analyze a samtools file (.sam) and print the result in the terminal with more information.
-        ## samReader.sh -i or --input <file> -s or --single # Launch samReader to analyze a samtools file (.sam) and print the result in a single file for summary and another for .fasta files.
+        ## samReader.sh -i or --input <file> -s or --single # Launch samReader to analyze a samtools file (.sam) and print the result in a single fasta file
   
 
 
@@ -43,7 +43,7 @@ import os, sys, getopt
 from tqdm.auto import tqdm
 
 from checks import check_line, line_to_payload
-from analyse import readMapping, outputTableCigar, globalPercentCigar, toBinary
+from analyse import readMapping, outputTableCigar, globalPercentCigar
 from summarize import summarize
 
 ############### FUNCTIONS TO :
@@ -62,7 +62,7 @@ def getOptions(argv):
     outputfile = ""
     trusted = False
     verbose = False
-    single_pdf = False  # Nouveau flag pour un seul PDF
+    single_file = False  # New flag for a single PDF and fasta file
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print("samReader.sh -i <inputfile> -o <outputfile> [-t] [-v] [-s]")
@@ -76,8 +76,8 @@ def getOptions(argv):
         elif opt in ("-v", "--verbose"):
             verbose = True
         elif opt in ("-s", "--single"):
-            single_pdf = True
-    return inputfile, outputfile, trusted, verbose, single_pdf
+            single_file = True
+    return inputfile, outputfile, trusted, verbose, single_file
 
 
 ## Check, Read and store the data
@@ -106,7 +106,9 @@ def checkFormat(file, trusted=False):
 
             payload: dict = line_to_payload(line, n)
             check_line(payload, trusted=trusted)
-            qname = payload['qname'].split('-')[0]
+
+            qname = payload['qname'].split('-')
+            qname = qname[0] if len(qname) != 1 else payload['qname'].split('_')[0]
 
             if qname not in clean:
                 clean[qname] = []
@@ -128,7 +130,7 @@ def main(argv):
     """
         Main function
     """
-    inputfile, outputfile, trusted, verbose, single_pdf = getOptions(argv)
+    inputfile, outputfile, trusted, verbose, single_file = getOptions(argv)
     # Create a folder to store the output files
     if outputfile == "": outputfile = os.path.basename(inputfile)[:-4]
 
@@ -140,7 +142,7 @@ def main(argv):
 
     for key, value in clean.items():
         results = {}
-        results["partially_mapped"], results["unmapped"], results["mapped"] = readMapping(value, results_dir)
+        results["partially_mapped"], results["unmapped"], results["mapped"] = readMapping(value, results_dir, single_file)
 
         outputTableCigar(value, results_dir)
 
