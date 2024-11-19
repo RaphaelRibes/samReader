@@ -33,9 +33,9 @@ eval set -- "$PARSED_OPTIONS"
 # Default variables
 input_file=""
 output_file=""
-trusted=false
-verbose=false
-single_pdf=false
+trusted=
+verbose=
+single_file=
 
 # Parsing options
 while true; do
@@ -51,7 +51,7 @@ while true; do
         -v|--verbose)
             verbose=true; shift;;
         -s|--single-fasta)
-            single_pdf=true; shift;;
+            single_file=true; shift;;
         --)
             shift; break;;
         *)
@@ -62,7 +62,7 @@ done
 # if the file is trusted, we don't check the content
 if [ ! -z "$trusted" ]; then
     export USER_START_DIR="$(pwd)"
-    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_pdf:+-s}
+    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s}
     exit 0
 fi
 
@@ -115,4 +115,4 @@ fi
         ##-o or --output: output name files (.txt)
 # Make sure to include the right path from where the command is executed
 export USER_START_DIR="$(pwd)"
-python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_pdf:+-s}
+python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s}
