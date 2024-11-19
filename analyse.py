@@ -1,4 +1,6 @@
 import re
+from sys import flags
+
 from tqdm.auto import tqdm
 import pandas as pd
 import os
@@ -23,21 +25,40 @@ def toBinary(load, exponent):
     return "".join(flagB)  # We return the flag in binary format.
 
 
-def toFasta(line):
-    header = f">{line['qname']} MAPQ:{line['mapq']}"
+def toFasta(line, mapping_situation):
+    header = f">{line['qname']} {mapping_situation}".strip() + f" MAPQ:{line['mapq']}"
     pos = line['pos']
-    header = f"{header} pos:{pos}" if pos != "0" else f"{header}"
+    header = f"{header} POS:{pos}" if pos != "0" else f"{header}"
     sequence = line['seq']
     fasta_format = f"{header}\n{sequence}\n"
     return fasta_format
 
+def check_all_mapped(l: list):
+    flag = toBinary(l[0]["flag"], 16)[-2] == "1" and l[0]['cigar'] == "100M"
+    if len(l) == 1:
+        return flag
+    else:
+        l.pop(0)
+        return flag and check_all_mapped(l)
+
+def check_all_unmapped(l: list):
+    flag = toBinary(l[0]["flag"], 16)[-3] == "1"
+    if len(l) == 1:
+        return flag
+    else:
+        l.pop(0)
+        return flag and check_all_unmapped(l)
+
+def check_all_partially_mapped(l: list):
+    flag = toBinary(l[0]["flag"], 16)[-2] == "1" and l[0]['cigar'] != "100M"
+    if len(l) == 1:
+        return flag
+    else:
+        l.pop(0)
+        return flag and check_all_partially_mapped(l)
 
 #### Analyze the partially mapped or unmapped reads ####
-def readMapping(payload, path, single_file=False):
-    partially_mapped_count = 0
-    unmapped_count = 0
-    mapped_count = 0
-
+def readMapping(payload, path, single_file=False, verbose=True):
     # Determine file handlers dynamically
     if single_file:
         file_handlers = {
@@ -52,27 +73,56 @@ def readMapping(payload, path, single_file=False):
             "mapped": open(f"{path}/only_mapped.fasta", "w"),
         }
 
-    try:
-        for line in tqdm(payload, desc="Analyzing partially mapped and unmapped reads", total=len(payload)):
-            flag = toBinary(line["flag"], 16)  # Compute flag
+    results = {"s_mapped": 0, "s_partially_mapped": 0, "s_unmapped": 0,
+               "p_mapped": 0, "p_partially_mapped": 0, "p_unmapped": 0}
+    pair_checked = []
 
-            if int(flag[-2]) == 1:  # Partially mapped or mapped
-                if line['cigar'] != "100M":
-                    partially_mapped_count += 1
-                    file_handlers["partially_mapped"].write(toFasta(line))
-                else:
-                    mapped_count += 1
-                    file_handlers["mapped"].write(toFasta(line))
+    iterator = list(zip(payload[::2], payload[1::2]))
+    if verbose:
+        iterator = tqdm(iterator,
+                        desc="Analyzing partially mapped and unmapped reads",
+                        total=len(iterator))
 
-            elif int(flag[-3]) == 1:  # Unmapped
-                unmapped_count += 1
-                file_handlers["unmapped"].write(toFasta(line))
+    try:  # We do it in a try block to ensure that all files are closed properly in case of an exception
+        for lines in iterator:
+            lines = list(lines)
+            for line in lines:
+                flag = toBinary(line["flag"], 16)  # Compute flag
+                if int(flag[-2]) == 1:  # Partially mapped or mapped
+                    if line['cigar'] != "100M":
+                        results["s_partially_mapped"] += 1
+                        if line["qname"] not in pair_checked and check_all_partially_mapped(lines.copy()):
+                            results["p_partially_mapped"] += 1
+                        file_handlers["partially_mapped"].write(toFasta(line, "PARTIALLY MAPPED" if single_file else ""))
+                    else:
+                        results["s_mapped"] += 1
+                        if line["qname"] not in pair_checked and check_all_mapped(lines.copy()):
+                            results["p_mapped"] += 1
+                        file_handlers["mapped"].write(toFasta(line, "MAPPED" if single_file else ""))
+
+                elif int(flag[-3]) == 1:  # Unmapped
+                    results["s_unmapped"] += 1
+                    if line["qname"] not in pair_checked and check_all_unmapped(lines.copy()):
+                        results["p_unmapped"] += 1
+                    file_handlers["unmapped"].write(toFasta(line, "UNMAPPED" if single_file else ""))
+
+                elif int(flag[-2]) == 0 and int(flag[-3]) == 0:
+                    results["s_partially_mapped"] += 1
+                    if line["qname"] not in pair_checked and check_all_partially_mapped(lines.copy()):
+                        results["p_partially_mapped"] += 1
+                    file_handlers["partially_mapped"].write(toFasta(line, "PARTIALLY MAPPED" if single_file else ""))
+
     finally:
         # Ensure all files are closed properly
         for handler in file_handlers.values():
             handler.close()
 
-    return partially_mapped_count, unmapped_count, mapped_count
+    # Check that the sum of mapped, partially mapped and unmapped reads is equal to the total number of reads
+    assert results["s_mapped"] + results["s_partially_mapped"] + results["s_unmapped"] != len(iterator), \
+        (f"Sum of mapped, partially mapped and unmapped reads should be equal to the total number of reads: "
+         f"{results['s_mapped']} + {results['s_partially_mapped']} + {results['s_unmapped']} != {len(payload)}")
+
+    return results
 
 
 

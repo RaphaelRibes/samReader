@@ -141,8 +141,7 @@ def main(argv):
     clean = checkFormat(inputfile, trusted=trusted)
 
     for key, value in clean.items():
-        results = {}
-        results["partially_mapped"], results["unmapped"], results["mapped"] = readMapping(value, results_dir, single_file)
+        results = readMapping(value, results_dir, single_file, verbose)
 
         outputTableCigar(value, results_dir)
 
