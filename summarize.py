@@ -48,13 +48,18 @@ Mapped & {mapped} \\
 Partially Mapped & {partially_mapped} \\
 Unmapped & {unmapped} \\
 \hline
+Total & {total} \\
+\hline
 \end{{tabular}}
 \end{{table}}
 
 
 \end{{document}}""".format(M=results["M"], I=results["I"], D=results["D"], S=results["S"], H=results["H"],
                            N=results["N"], P=results["P"], X=results["X"], E=results["="],read_name=fileName,
-                           partially_mapped=results["partially_mapped"], unmapped=results["unmapped"], mapped=results["mapped"])
+                           partially_mapped=results["s_partially_mapped"],
+                           unmapped=results["s_unmapped"],
+                           mapped=results["s_mapped"],
+                           total=results["s_mapped"] + results["s_partially_mapped"] + results["s_unmapped"])
 
     with open(f"{path}/{fileName}.tex", "w") as file:
         file.write(latex_content)
