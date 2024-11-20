@@ -131,6 +131,7 @@ def main(argv):
         Main function
     """
     inputfile, outputfile, trusted, verbose, single_file = getOptions(argv)
+
     # Create a folder to store the output files
     if outputfile == "": outputfile = os.path.basename(inputfile)[:-4]
 

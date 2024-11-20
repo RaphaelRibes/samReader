@@ -116,8 +116,8 @@ def check_line(payload:dict, trusted=False) -> None:
     :param trusted:
     :return:
     """
-    if trusted:
-        return
+    if trusted: return
+    
     payload_values = payload_tolist(payload)
 
     # col 1 : QNAME -> str() following regex [!-?A-~]{1,254}
@@ -199,9 +199,7 @@ def check_line(payload:dict, trusted=False) -> None:
 
 
 def main():
-    payload_values = ["1", "22222222222", "3", 4]
-    print(f'Error line {1} :'
-          f'\n{display_error_context(payload_values, "flag")}\n'
-         f'Expected : {1} to be a string following this regex [!-?A-~]{"{1,254}"}')
+    pass
+
 if __name__ == "__main__":
     main()

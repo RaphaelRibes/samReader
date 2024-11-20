@@ -152,7 +152,7 @@ def percentMutation(dico) -> list:
             res.append((round((dico[mut] * 100) / total_value, 2)))
         else:
             res.append(0.0)
-    return res # We remove the last coma
+    return res
 
 
 def globalPercentCigar(payload:list[dict], verbose=True):
