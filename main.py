@@ -43,7 +43,7 @@ import os, sys, getopt
 from tqdm.auto import tqdm
 
 from checks import check_line, line_to_payload
-from analyse import readMapping, outputTableCigar, globalPercentCigar
+from analyse import readMapping, globalPercentCigar
 from summarize import summarize
 
 ############### FUNCTIONS TO :
@@ -143,9 +143,7 @@ def main(argv):
     for key, value in clean.items():
         results = readMapping(value, results_dir, single_file, verbose)
 
-        outputTableCigar(value, results_dir)
-
-        recap = globalPercentCigar(results_dir)
+        recap = globalPercentCigar(value)
         for key1, value1 in recap.items():
             results[key1] = value1
 

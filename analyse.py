@@ -1,5 +1,5 @@
 import re
-from sys import flags
+import numpy as np
 
 from tqdm.auto import tqdm
 import pandas as pd
@@ -7,32 +7,36 @@ import os
 
 #### Convert to binary ####
 def toBinary(load, exponent):
-    flagB = bin(int(load))  # Transform the integer into a binary.
-    flagB = flagB.replace('0b', '')  # Remove '0b' Example: '0b1001101' > '1001101'
-    flagB = list(flagB)
-
+    flagB = bin(int(load)).replace('0b', '')  # Convert to binary and remove '0b'
     if flagB[0] == '-':
-        starting_index = 1  # We start at the index 1 if the number is negative.
-        exponent += 1  # We add 1 to the exponent if the number is negative.
+        starting_index = 1  # Start at index 1 if negative
+        exponent += 1  # Increment exponent if negative
     else:
         starting_index = 0
 
-    if len(flagB) < exponent:  # Size adjustement to exponent
-        add = exponent - len(
-            flagB)  # We compute the difference between the maximal size and the length of the binary flag.
-        for t in range(add):
-            flagB.insert(starting_index, '0')  # We insert 0 to complete until the maximal flag size.
-    return "".join(flagB)  # We return the flag in binary format.
+    # Adjust size to exponent
+    flagB = ['0'] * (exponent - len(flagB)) + list(flagB[starting_index:])
+    return "".join(flagB)  # Return binary flag
 
 
+#### Create a fasta header ####
 def toFasta(line, mapping_situation):
+    """
+    Create a FASTA formatted head from a read line and its mapping situation.
+
+    Args:
+        line (dict): A dictionary containing read information with keys 'qname', 'mapq', 'pos', and 'seq'.
+        mapping_situation (str): A string describing the mapping situation of the read.
+
+    Returns:
+        str: A string header in FASTA format.
+    """
     header = f">{line['qname']} {mapping_situation}".strip() + f" MAPQ:{line['mapq']}"
     pos = line['pos']
     header = f"{header} POS:{pos}" if pos != "0" else f"{header}"
     sequence = line['seq']
     fasta_format = f"{header}\n{sequence}\n"
     return fasta_format
-
 
 #### Analyze the partially mapped or unmapped reads ####
 def readMapping(payload, path, single_file=False, verbose=True):
@@ -64,33 +68,45 @@ def readMapping(payload, path, single_file=False, verbose=True):
             lines = list(lines)
             pair_mapping = []
             for line in lines:
-                flag = toBinary(line["flag"], 16)  # Compute flag
-                if int(flag[-2]) == 1:  # Partially mapped or mapped
-                    if line['cigar'] != "100M":
-                        results["s_partially_mapped"] += 1
-                        pair_mapping.append("p")
-                        file_handlers["partially_mapped"].write(toFasta(line, "PARTIALLY MAPPED" if single_file else ""))
-                    else:
-                        results["s_mapped"] += 1
-                        pair_mapping.append("m")
-                        file_handlers["mapped"].write(toFasta(line, "MAPPED" if single_file else ""))
+                # Compute the binary representation of the flag with a length of 16 bits
+                flag = toBinary(line["flag"], 16)
 
-                elif int(flag[-3]) == 1:  # Unmapped
-                    results["s_unmapped"] += 1
-                    pair_mapping.append("u")
-                    file_handlers["unmapped"].write(toFasta(line, "UNMAPPED" if single_file else ""))
-
-                elif int(flag[-2]) == 0 and int(flag[-3]) == 0:
-                    results["s_partially_mapped"] += 1
+                # Check if the read is partially mapped
+                if int(flag[-2]) == 1 and line['cigar'] != "100M":
+                    results["s_partially_mapped"] += 1  # Increment the count of partially mapped reads
+                    # Mark the read as partially mapped
                     pair_mapping.append("p")
-                    file_handlers["partially_mapped"].write(toFasta(line, "PARTIALLY MAPPED" if single_file else ""))
+                    file_handlers["partially_mapped"].write(toFasta(line, "PARTIALLY MAPPED" if single_file else ""))  # Write to the partially mapped file
 
-            if all([m == "m" for m in pair_mapping]):
-                results["p_mapped"] += 1
-            elif all([m == "u" for m in pair_mapping]):
-                results["p_unmapped"] += 1
+                # Check if the read is mapped
+                elif int(flag[-2]) == 1:
+                    results["s_mapped"] += 1  # Increment the count of mapped reads
+                    pair_mapping.append("m")  # Mark the read as mapped
+                    file_handlers["mapped"].write(toFasta(line, "MAPPED" if single_file else ""))  # Write to the mapped file
+
+                # Check if the read is unmapped
+                elif int(flag[-3]) == 1:
+                    results["s_unmapped"] += 1  # Increment the count of unmapped reads
+                    pair_mapping.append("u")  # Mark the read as unmapped
+                    file_handlers["unmapped"].write(toFasta(line, "UNMAPPED" if single_file else ""))  # Write to the unmapped file
+
+                # Default case (flag 2 and 3 are not activated): mark the read as partially mapped
+                else:
+                    results["s_partially_mapped"] += 1  # Increment the count of partially mapped reads
+                    pair_mapping.append("p")  # Mark the read as partially mapped
+                    file_handlers["partially_mapped"].write(toFasta(line, "PARTIALLY MAPPED" if single_file else ""))  # Write to the partially mapped file
+
+            # Check if all reads in the pair are mapped
+            if all(m == "m" for m in pair_mapping):
+                results["p_mapped"] += 1  # Increment the count of pairs where both reads are mapped
+
+            # Check if all reads in the pair are unmapped
+            elif all(m == "u" for m in pair_mapping):
+                results["p_unmapped"] += 1  # Increment the count of pairs where both reads are unmapped
+
+            # Default case: mark the pair as partially mapped
             else:
-                results["p_partially_mapped"] += 1
+                results["p_partially_mapped"] += 1  # Increment the count of pairs where at least one read is partially mapped
 
     finally:
         # Ensure all files are closed properly
@@ -108,57 +124,64 @@ def readMapping(payload, path, single_file=False, verbose=True):
 
 ### Analyse the CIGAR = regular expression that summarise each read alignment ###
 def readCigar(cigar):
+    if cigar == "*": return {}
+
     dico = {}
+    num = 0
 
-    if cigar == "*": return dico
-
-    regex = r"\*|([0-9]+[MIDNSHPX=])"
-    ext = re.findall(regex, cigar, re.MULTILINE)  # split cigar
-
-    for cig in ext:
-        dico[cig[-1]] = int(cig[:-1])
-        # cig[-1] gives the type of mutation (M, I, D, S, H, N, P, X, = or *)
-        # cig[:-1] gives the number of mutation
+    # we can skip using REGEX here because we verified the format of the CIGAR string
+    # it's only faster by 8% and it took me all morning to find a new way ffs
+    for char in cigar:
+        if char.isdigit():
+            # Build the number if the character is a digit
+            num = num * 10 + int(char)
+        else:
+            # Add the operation to the dictionary
+            dico[char] = dico.get(char, 0) + num
+            num = 0
 
     return dico
 
-
 ### Analyse the CIGAR = regular expression that summarise each read alignment ###
-def percentMutation(dico):
-    totalValue = sum(dico.values())
-    mutList = ['M', 'I', 'D', 'S', 'H', 'N', 'P', 'X', '=']
-    res = ""
-    for mut in mutList:  # Calculated percent of mutation if mut present in the dictionnary, else, percent of mut = 0
+def percentMutation(dico) -> list:
+    total_value = sum(dico.values())
+    mut_list = ['M', 'I', 'D', 'S', 'H', 'N', 'P', 'X', '=']
+    res = []
+    for mut in mut_list:  # Calculated percent of mutation if mut present in the dictionnary, else, percent of mut = 0
         if mut in dico.keys():
-            res += (str(round((dico[mut] * 100) / totalValue, 2)) + ",")
+            res.append((round((dico[mut] * 100) / total_value, 2)))
         else:
-            res += ("0.00" + ",")
-    return res[:-1]  # We remove the last coma
+            res.append(0.0)
+    return res # We remove the last coma
 
 
-def outputTableCigar(payload, path):
-    with open(f"{path}/outpuTable_cigar.csv", "w") as outputTable:
-        outputTable.write("M,I,D,S,H,N,P,X,=\n")
-
-        for n, line in enumerate(tqdm(payload, desc="Analyzing CIGAR", total=len(payload))):
-            dico = readCigar(line["cigar"])
-            percentMut = percentMutation(dico) + "\n"
-            outputTable.write(percentMut)
-
-
-def globalPercentCigar(path):
+def globalPercentCigar(payload:list[dict], verbose=True):
     """
-    Global representation of cigar distribution.
+        Analyze the CIGAR strings and return a DataFrame with the percentage of each mutation type.
 
-    Args:
-        path (str): The path to the directory containing the 'outpuTable_cigar.csv' file.
+        Args:
+            payload (list): A list of dictionaries containing read information.
+            path (str): The path to the directory (not used in this version).
 
-    Returns:
-        dict: A dictionary where the keys are the mutation types and the values are the formatted percentages of each mutation type.
-    """
-    df = pd.read_csv(f"{path}/outpuTable_cigar.csv")  # Read the CSV file into a DataFrame
-    nbReads = len(df)  # Get the number of reads
-    metrics = {col: df[col].sum() for col in df.columns}  # Calculate the sum of each column
+        Returns:
+            pd.DataFrame: A DataFrame with the percentage of each mutation type.
+            :param payload:  A list of dictionaries containing read information.
+            :param verbose:  A boolean to display the progress bar
+        """
+    data = []
+
+    iterator = enumerate(payload)
+    if verbose:
+        iterator = tqdm(iterator, desc="Analyzing CIGAR strings", total=len(payload))
+
+    for n, line in iterator:
+        dico = readCigar(line["cigar"])
+        percent_mut = percentMutation(dico)
+        if sum(percent_mut) == 100:
+            data.append(percentMutation(dico))
+
+    data = np.array(data)
+    nb_reads = len(data)
 
     def format_metric(value):
         """
@@ -170,19 +193,25 @@ def globalPercentCigar(path):
         Returns:
             str: The formatted percentage string.
         """
-        mid = str(round(value / nbReads, 2))
-        if value / nbReads == 0:
+        mid = str(round(value / nb_reads, 2))
+        if value / nb_reads == 0:
             mid = "0"
-        elif value / nbReads < 0.01:
+        elif value / nb_reads < 0.01:
             mid = "$<$0.01"
         return mid + "\\%"
 
-    final = {typ: format_metric(value) for typ, value in metrics.items()}  # Create the final dictionary with formatted metrics
-
-    # Delete outPutTable_cigar.csv
-    os.remove(f"{path}/outpuTable_cigar.csv")
-
-    return final
+    columns_dict = {
+    "M": format_metric(data[:, 0].sum()),
+    "I": format_metric(data[:, 1].sum()),
+    "D": format_metric(data[:, 2].sum()),
+    "S": format_metric(data[:, 3].sum()),
+    "H": format_metric(data[:, 4].sum()),
+    "N": format_metric(data[:, 5].sum()),
+    "P": format_metric(data[:, 6].sum()),
+    "X": format_metric(data[:, 7].sum()),
+    "=": format_metric(data[:, 8].sum()),
+}
+    return columns_dict
 
 
 def main():
