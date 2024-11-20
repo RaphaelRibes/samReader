@@ -38,28 +38,51 @@ Sequence mismatch & {E} \\
 \end{{table}}
 
 \section{{Read Mapping Summary}}
-\begin{{table}}[h]
+
+\noindent
+\begin{{minipage}}[t]{{0.45\textwidth}}
 \centering
+\textbf{{Single Read Summary}} \\
 \begin{{tabular}}{{|l|c|}}
 \hline
 \textbf{{Mapping Type}} & \textbf{{Count}} \\
 \hline
-Mapped & {mapped} \\
-Partially Mapped & {partially_mapped} \\
-Unmapped & {unmapped} \\
+Mapped & {s_mapped} \\
+Partially Mapped & {s_partially_mapped} \\
+Unmapped & {s_unmapped} \\
 \hline
-Total & {total} \\
+Total & {s_total} \\
 \hline
 \end{{tabular}}
-\end{{table}}
+\end{{minipage}}%
+\hfill
+\begin{{minipage}}[t]{{0.45\textwidth}}
+\centering
+\textbf{{Pair Read Summary}} \\
+\begin{{tabular}}{{|l|c|}}
+\hline
+\textbf{{Mapping Type}} & \textbf{{Count}} \\
+\hline
+Mapped & {p_mapped} \\
+Partially Mapped & {p_partially_mapped} \\
+Unmapped & {p_unmapped} \\
+\hline
+Total & {p_total} \\
+\hline
+\end{{tabular}}
+\end{{minipage}}
 
 
 \end{{document}}""".format(M=results["M"], I=results["I"], D=results["D"], S=results["S"], H=results["H"],
                            N=results["N"], P=results["P"], X=results["X"], E=results["="],read_name=fileName,
-                           partially_mapped=results["s_partially_mapped"],
-                           unmapped=results["s_unmapped"],
-                           mapped=results["s_mapped"],
-                           total=results["s_mapped"] + results["s_partially_mapped"] + results["s_unmapped"])
+                           s_partially_mapped=results["s_partially_mapped"],
+                           p_partially_mapped=results["p_partially_mapped"],
+                           s_unmapped=results["s_unmapped"],
+                           p_unmapped=results["p_unmapped"],
+                           s_mapped=results["s_mapped"],
+                           p_mapped=results["p_mapped"],
+                           s_total=results["s_mapped"] + results["s_partially_mapped"] + results["s_unmapped"],
+                           p_total=results["p_mapped"] + results["p_partially_mapped"] + results["p_unmapped"])
 
     with open(f"{path}/{fileName}.tex", "w") as file:
         file.write(latex_content)

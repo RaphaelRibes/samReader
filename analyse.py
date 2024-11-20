@@ -33,29 +33,6 @@ def toFasta(line, mapping_situation):
     fasta_format = f"{header}\n{sequence}\n"
     return fasta_format
 
-def check_all_mapped(l: list):
-    flag = toBinary(l[0]["flag"], 16)[-2] == "1" and l[0]['cigar'] == "100M"
-    if len(l) == 1:
-        return flag
-    else:
-        l.pop(0)
-        return flag and check_all_mapped(l)
-
-def check_all_unmapped(l: list):
-    flag = toBinary(l[0]["flag"], 16)[-3] == "1"
-    if len(l) == 1:
-        return flag
-    else:
-        l.pop(0)
-        return flag and check_all_unmapped(l)
-
-def check_all_partially_mapped(l: list):
-    flag = toBinary(l[0]["flag"], 16)[-2] == "1" and l[0]['cigar'] != "100M"
-    if len(l) == 1:
-        return flag
-    else:
-        l.pop(0)
-        return flag and check_all_partially_mapped(l)
 
 #### Analyze the partially mapped or unmapped reads ####
 def readMapping(payload, path, single_file=False, verbose=True):
@@ -75,7 +52,6 @@ def readMapping(payload, path, single_file=False, verbose=True):
 
     results = {"s_mapped": 0, "s_partially_mapped": 0, "s_unmapped": 0,
                "p_mapped": 0, "p_partially_mapped": 0, "p_unmapped": 0}
-    pair_checked = []
 
     iterator = list(zip(payload[::2], payload[1::2]))
     if verbose:
@@ -86,31 +62,35 @@ def readMapping(payload, path, single_file=False, verbose=True):
     try:  # We do it in a try block to ensure that all files are closed properly in case of an exception
         for lines in iterator:
             lines = list(lines)
+            pair_mapping = []
             for line in lines:
                 flag = toBinary(line["flag"], 16)  # Compute flag
                 if int(flag[-2]) == 1:  # Partially mapped or mapped
                     if line['cigar'] != "100M":
                         results["s_partially_mapped"] += 1
-                        if line["qname"] not in pair_checked and check_all_partially_mapped(lines.copy()):
-                            results["p_partially_mapped"] += 1
+                        pair_mapping.append("p")
                         file_handlers["partially_mapped"].write(toFasta(line, "PARTIALLY MAPPED" if single_file else ""))
                     else:
                         results["s_mapped"] += 1
-                        if line["qname"] not in pair_checked and check_all_mapped(lines.copy()):
-                            results["p_mapped"] += 1
+                        pair_mapping.append("m")
                         file_handlers["mapped"].write(toFasta(line, "MAPPED" if single_file else ""))
 
                 elif int(flag[-3]) == 1:  # Unmapped
                     results["s_unmapped"] += 1
-                    if line["qname"] not in pair_checked and check_all_unmapped(lines.copy()):
-                        results["p_unmapped"] += 1
+                    pair_mapping.append("u")
                     file_handlers["unmapped"].write(toFasta(line, "UNMAPPED" if single_file else ""))
 
                 elif int(flag[-2]) == 0 and int(flag[-3]) == 0:
                     results["s_partially_mapped"] += 1
-                    if line["qname"] not in pair_checked and check_all_partially_mapped(lines.copy()):
-                        results["p_partially_mapped"] += 1
+                    pair_mapping.append("p")
                     file_handlers["partially_mapped"].write(toFasta(line, "PARTIALLY MAPPED" if single_file else ""))
+
+            if all([m == "m" for m in pair_mapping]):
+                results["p_mapped"] += 1
+            elif all([m == "u" for m in pair_mapping]):
+                results["p_unmapped"] += 1
+            else:
+                results["p_partially_mapped"] += 1
 
     finally:
         # Ensure all files are closed properly
