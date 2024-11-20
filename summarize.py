@@ -107,5 +107,4 @@ def summarize(fileName, results, path):
     if yn == "y":
         subprocess.run(["xdg-open", f"{path}/{fileName}.pdf"])
     else:
-        # exit
-        sys.exit(0)
+        pass
