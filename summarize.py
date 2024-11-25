@@ -16,7 +16,8 @@ def makeLatex(fileName, results, path):
 \maketitle
 
 \section{{Global cigar mutation observed }}
-
+\centering
+This section only include mapped and partially mapped CIGAR values since unmapped reads do not have one.
 \begin{{table}}[h]
 \centering
 \begin{{tabular}}{{|l|c|}}
@@ -34,9 +35,13 @@ Sequence match & {X} \\
 Sequence mismatch & {E} \\
 \hline
 \end{{tabular}}
-% stop centering
-\end{{table}}
 
+% Annotation under the table
+\scriptsize
+\textcolor{{Note: if there is 100\% of a certain mutation type but $<$0.01\% of any other mutation, the real value of 100\% is less than 100\% due to rounding.}} \\
+\end{{table}}
+% stop centering
+\raggedright
 \section{{Read Mapping Summary}}
 
 \noindent
@@ -71,6 +76,7 @@ Total & {p_total} \\
 \hline
 \end{{tabular}}
 \end{{minipage}}
+\thispagestyle{{empty}} % Suppress page number on the title page
 
 
 \end{{document}}""".format(M=results["M"], I=results["I"], D=results["D"], S=results["S"], H=results["H"],
