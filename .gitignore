@@ -130,3 +130,5 @@ training_data/
 mapping.sam_results/
 
 single_pair.sam_results/
+
+mapping_results/
