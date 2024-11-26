@@ -1,10 +1,15 @@
 import re
-from analyse import toBinary
 import sys
 import yaml
+import os
 
-version = yaml.safe_load(open("config.yaml", "r"))
-SPECS = yaml.safe_load(open(f"SAM_specs/{version['version']}.yaml", "r"))
+# I know it looks horrible, but I had to do it to make it work
+two_levels_up = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, two_levels_up)
+from common_functions import toBinary
+
+version = yaml.safe_load(open(f"{two_levels_up}/config.yaml", "r"))
+SPECS = yaml.safe_load(open(f"{two_levels_up}/SAM_specs/{version['version']}/specs.yaml", "r"))
 
 def display_error_context(valist:list, problematic_param:str) -> str:
     """

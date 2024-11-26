@@ -43,17 +43,16 @@ if [ -z "$version" ]; then
 fi
 
 # if version doesn't exist in SAM_specs folder
-if [ ! -f "$(dirname "$0")/SAM_specs/$version.yaml" ]; then
+if [ ! -d "$(dirname "$0")/SAM_specs/$version" ]; then
     echo "The version of the script is not found in the SAM_specs folder. Please provide the version in the config.yaml file."
-    bash "$0" -h; exit 1;
+    usage;
 fi
 
 # Check if getopt ran successfully.
 # $?: The exit status of the last command. If it is 0, then the command was successful.
 if [ $? != 0 ]; then
     echo "Error in options"
-    bash "$0" -h
-    exit 1
+    usage
 fi
 
 # Apply the parsed options
@@ -87,7 +86,7 @@ while true; do
         --)
             shift; break;;
         *)
-            echo "Unrecognized option"; bash "$0" -h; exit 1;;
+            echo "Unrecognized option"; usage;;
     esac
 done
 
@@ -99,13 +98,13 @@ USER_START_DIR="$(pwd)"
 # Check if the input file is provided or not
 if [ -z "$input_file" ]; then
     echo "Please provide the input file."
-    bash "$0" -h; exit 1;
+    usage;
 fi
 
 # Check if the path of the input file is correct or not
 if [ ! -f "$input_file" ]; then
     echo "The input file does not exist. Please provide the correct path."
-    bash "$0" -h; exit 1;
+    usage;
 fi
 
 # If there is a output file, check if the path of the output file is correct or not
@@ -117,13 +116,13 @@ fi
 # Check if the sam file is a directory or not
 if [ -d "$input_file" -o -d "$output_file" ]; then
     echo "The input file is a directory. Please provide a file."
-    bash "$0" -h; exit 1;
+    usage;
 fi
 
 # Check if the sam file is empty or not
 if [ ! -s "$input_file" ]; then
     echo "The input file is empty. Please provide a non-empty file."
-    bash "$0" -h; exit 1;
+    usage;
 fi
 
 # if the file is trusted, we don't check the content
@@ -134,10 +133,10 @@ if [ ! -z "$trusted" ]; then
 fi
 
 # Check if the sam file is not containing unauthorized characters
-query=$(grep 'GLOBAL: ' "$(dirname "$0")/SAM_specs/$version.yaml" | cut -d ' ' -f 2)
+query=$(grep 'GLOBAL: ' "$(dirname "$0")/SAM_specs/$version/specs.yaml" | cut -d ' ' -f 2)
 if ! grep -q "$query" "$input_file"; then
     echo "The input file is containing unauthorized characters. Please provide a file in the right format ($query)."
-    bash "$0" -h; exit 1;
+    usage;
 fi
 
 # parse the parameters and start the main.py script

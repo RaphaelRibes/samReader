@@ -39,12 +39,8 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
 ############### IMPORT MODULES ###############
 
-import os, sys, getopt
+import os, sys, getopt, yaml, importlib.util
 from tqdm.auto import tqdm
-
-from checks import check_line
-from analyse import readMapping, globalPercentCigar
-from summarize import summarize
 
 ############### FUNCTIONS TO :
 ## 0/ Get options,
@@ -81,8 +77,7 @@ def getOptions(argv):
 
 
 ## Check, Read and store the data
-
-def checkFormat(file, trusted=False, verbose=False):
+def checkFormat(file, check_line, trusted=False, verbose=False):
     """
         Check the format of the input file
     """
@@ -127,19 +122,31 @@ def main(argv):
     if outputfile == "": outputfile = os.path.basename(inputfile)[:-4]
 
     user_start_dir = os.getenv("USER_START_DIR", os.getcwd())  # Get the user start directory
-    results_dir = os.path.join(user_start_dir, f"{outputfile}_results")  # Create the results directory
+    results_dir = os.path.join(os.getcwd(), f"{outputfile}_results")  # Create the results directory
 
     os.makedirs(results_dir, exist_ok=True)  # Create the directory if it doesn't exist
-    clean = checkFormat(inputfile, trusted=trusted, verbose=verbose)  # Check the format of the input file and store the data
+
+    version = yaml.safe_load(open(f"{os.path.dirname(os.path.abspath(__file__))}/config.yaml", "r"))['version']  # Load the version from the config file
+    modules = {"analyse": None,
+               "checks": None,
+               "summarize": None}
+
+    for key in modules:
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SAM_specs", version, f"{key}.py")
+        spec = importlib.util.spec_from_file_location(key, file_path)
+        modules[key] = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modules[key])
+
+    clean = checkFormat(inputfile, trusted=trusted, verbose=verbose, check_line=modules['checks'].check_line)  # Check the format of the input file and store the data
 
     for key, value in clean.items():  # Iterate over the reads
-        results = readMapping(value, results_dir, single_file=single_file, verbose=verbose)
+        results = modules["analyse"].readMapping(value, results_dir, single_file=single_file, verbose=verbose)
 
-        recap = globalPercentCigar(value, verbose=verbose)
+        recap = modules["analyse"].globalPercentCigar(value, verbose=verbose)
         for key1, value1 in recap.items():
             results[key1] = value1
 
-        summarize(key, results, results_dir, verbose=verbose, ask_to_open=ask_to_open)
+        modules["summarize"].summarize(key, results, results_dir, verbose=verbose, ask_to_open=ask_to_open)
 
 
 ############### LAUNCH THE SCRIPT ###############
