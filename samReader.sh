@@ -113,7 +113,8 @@ fi
 
 # Check if the sam file is not containing unauthorized characters
 if ! grep -q "[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*" "$input_file"; then
-    echo "The input file is containing unauthorized characters. Please provide a file in the right format."
+    echo "The input file is containing unauthorized characters. Please provide a file in the right format
+    ([0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*)."  # Rajouter la date de validité de la version sam
     bash "$0" -h; exit 1;
 fi
 

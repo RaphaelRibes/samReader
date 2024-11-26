@@ -31,9 +31,9 @@ def toFasta(line, mapping_situation):
     Returns:
         str: A string header in FASTA format.
     """
-    header = f">{line['qname']} {mapping_situation}".strip() + f" MAPQ:{line['mapq']}"
-    header = f"{header} POS:{line['pos']}" if line['pos'] != "0" else f"{header}"
-    fasta_format = f"{header}\n{line['seq']}\n"
+    header = f">{line[0]} {mapping_situation}".strip() + f" MAPQ:{line[0]}"
+    header = f"{header} POS:{line[3]}" if line[3] != "0" else f"{header}"
+    fasta_format = f"{header}\n{line[9]}\n"
     return fasta_format
 
 #### Analyze the partially mapped or unmapped reads ####
@@ -67,10 +67,10 @@ def readMapping(payload, path, single_file=False, verbose=True):
             pair_mapping = []
             for line in lines:
                 # Compute the binary representation of the flag with a length of 16 bits
-                flag = toBinary(line["flag"], 16)
+                flag = toBinary(line[1], 16)
 
                 # Check if the read is partially mapped
-                if int(flag[-2]) == 1 and line['cigar'] != "100M":
+                if int(flag[-2]) == 1 and line[5] != f"{len(line[9])}M":
                     results["s_partially_mapped"] += 1  # Increment the count of partially mapped reads
                     # Mark the read as partially mapped
                     pair_mapping.append("p")
@@ -147,13 +147,13 @@ def percentMutation(dico) -> list:
     res = []
     for mut in mut_list:  # Calculated percent of mutation if mut present in the dictionnary, else, percent of mut = 0
         if mut in dico.keys():
-            res.append((round((dico[mut] * 100) / total_value, 2)))
+            res.append((round((dico[mut] * 100) / total_value, 5)))
         else:
             res.append(0.0)
     return res
 
 
-def globalPercentCigar(payload:list[dict], verbose=False):
+def globalPercentCigar(payload:list[list], verbose=False):
     """
         Analyze the CIGAR strings and return a DataFrame with the percentage of each mutation type.
 
@@ -168,15 +168,18 @@ def globalPercentCigar(payload:list[dict], verbose=False):
         """
     data = []
 
-    iterator = enumerate(payload)
-    if verbose:
-        iterator = tqdm(iterator, desc="Analyzing CIGAR strings", total=len(payload))
+    iterator = tqdm(enumerate(payload), desc="Analyzing CIGAR strings", total=len(payload)) if verbose else enumerate(payload)
 
     for n, line in iterator:
-        dico = readCigar(line["cigar"])
+        dico = readCigar(line[5])
         percent_mut = percentMutation(dico)
-        if sum(percent_mut) == 100:
+
+        if round(sum(percent_mut), 4) == 100:
             data.append(percent_mut)
+        elif sum(percent_mut) == 0:
+            pass
+        else:
+            raise ValueError(f"Sum of mutation percentages should be equal to 100: {sum(percent_mut)}")
 
     data = np.array(data)
     nb_reads = len(data)

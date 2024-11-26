@@ -1,4 +1,5 @@
 import subprocess, os, shutil, sys
+from matplotlib import pyplot as plt
 
 def makeLatex(fileName, results, path):
     latex_content = r"""% Preamble
@@ -15,31 +16,6 @@ def makeLatex(fileName, results, path):
 \date{{}}
 \maketitle
 
-\section{{Global cigar mutation observed }}
-\centering
-This section only include mapped and partially mapped CIGAR values since unmapped reads do not have one.
-\begin{{table}}[h]
-\centering
-\begin{{tabular}}{{|l|c|}}
-\hline
-\textbf{{Mutation Type}} & \textbf{{Count}} \\
-\hline
-Alignment match & {M} \\
-Insertion to the reference & {I} \\
-Deletion from the reference & {D} \\
-Soft clipping & {S} \\
-Hard clipping & {H} \\
-Skipped region & {N} \\
-Padding & {P} \\
-Sequence match & {X} \\
-Sequence mismatch & {E} \\
-\hline
-\end{{tabular}}
-
-% Annotation under the table
-\scriptsize
-\textcolor{{Note: if there is 100\% of a certain mutation type but $<$0.01\% of any other mutation, the real value of 100\% is less than 100\% due to rounding.}} \\
-\end{{table}}
 % stop centering
 \raggedright
 \section{{Read Mapping Summary}}
@@ -76,6 +52,33 @@ Total & {p_total} \\
 \hline
 \end{{tabular}}
 \end{{minipage}}
+
+\section{{Global cigar mutation observed }}
+\centering
+This section only include mapped and partially mapped CIGAR values since unmapped reads do not have one.
+\begin{{table}}[h]
+\centering
+\begin{{tabular}}{{|l|c|}}
+\hline
+\textbf{{Mutation Type}} & \textbf{{Count}} \\
+\hline
+Alignment match & {M} \\
+Insertion to the reference & {I} \\
+Deletion from the reference & {D} \\
+Soft clipping & {S} \\
+Hard clipping & {H} \\
+Skipped region & {N} \\
+Padding & {P} \\
+Sequence match & {X} \\
+Sequence mismatch & {E} \\
+\hline
+\end{{tabular}}
+
+% Annotation under the table
+\scriptsize
+\textcolor{{Note: if there is 100\% of a certain mutation type but $<$0.01\% of any other mutation, the real value of 100\% is less than 100\% due to rounding.}} \\
+\end{{table}}
+
 \thispagestyle{{empty}} % Suppress page number on the title page
 
 

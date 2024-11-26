@@ -39,10 +39,11 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
 ############### IMPORT MODULES ###############
 
-import os, sys, getopt, subprocess
+import os, sys, getopt
 from tqdm.auto import tqdm
+import numpy as np
 
-from checks import check_line, line_to_payload
+from checks import check_line
 from analyse import readMapping, globalPercentCigar
 from summarize import summarize
 
@@ -90,9 +91,6 @@ def checkFormat(file, trusted=False, verbose=False):
         with open(file, "r") as f:
             sam_line = f.readlines()
 
-        # remove the lines who start with @
-        # sam_line = [line for line in sam_line if not line.startswith("@")]
-
         clean = {}
 
         # we're gonna check that every columns follows the right formating
@@ -103,18 +101,14 @@ def checkFormat(file, trusted=False, verbose=False):
             if line.startswith('@'): continue
             line = line.split('\t')
 
-            payload: dict = line_to_payload(line, n)
-            check_line(payload, trusted=trusted)
+            check_line(line, trusted=trusted)
 
-            qname = payload['qname'].split('-')
-            qname = qname[0] if len(qname) != 1 else payload['qname'].split('_')[0]
+            qname = line[0].split('-')
+            qname = qname[0] if len(qname) != 1 else  line[0].split('_')[0]
 
             # Those two lines allows to store the data for each reads that can be found in the sam file
             if qname not in clean: clean[qname] = []  # Create the key if it doesn't exist
-            clean[qname].append(payload)
-
-            # I don't really use this part of the code, but maybe one day I will
-            if len(line) > 11: clean[qname][-1]['extra'] = line[11:]
+            clean[qname].append(line[:11])  # we reduce the size of the data to store
 
         return clean
 
