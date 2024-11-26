@@ -1,7 +1,11 @@
 #!/bin/bash
 
+RED='\e[0;31m'
+WHITE='\e[0;37m'
+
 # Function to display the help message
 usage() {
+  echo -e "${WHITE}"
   echo "                                ____                      __              "
   echo "   _____  ______   ____ ___    / __ \  ___   ______  ____/ /  ___    _____"
   echo "  / ___/ / __  /  / __ \`__ \  / /_/ / / _ \ / __  / / __  /  / _ \  / ___/"
@@ -9,8 +13,14 @@ usage() {
   echo "/____/  \____/  /_/ /_/ /_/ /_/ |_|  \___/ \____/  \____/   \___/ /_/     "
   echo
   echo "Usage: $0 -i|--input input_file <input.sam> [-o|--output <output_directory>] [-t|--trusted] [-v|--verbose] [-s|--single-fasta] [-h|--help]"
+  # if version is "UNDEFINED PLEASE CONFIGURE IT IN config.yaml"
+  if [ "$version" = "UNDEFINED PLEASE CONFIGURE IT IN config.yaml" ]; then
+      echo -e "${RED}SAM Version: $version"
+  else
+      echo -e "SAM Version: $version"
+  fi
   echo
-  echo "Options:"
+  echo -e "${WHITE}Options:"
   echo "  -i, --input <file>        Specifies the input file"
   echo "  -o, --output <directory>  (optional) Specifies the output directory (by default the current directory)"
   echo "  -t, --trusted             (optional) Skips checking the content of the input file"
@@ -22,6 +32,21 @@ usage() {
 
 # Using getopt to support both short and long options
 PARSED_OPTIONS=$(getopt -o "hi:o:tvs" -l "help,input:,output:,trusted,verbose,single" -n "$0" -- "$@")
+
+# Open the config.yaml file and get the version
+version=$(grep -oP "[0-9]+\.[0-9]+_[0-9]{2}-[0-9]{2}-[0-9]{4}" "$(dirname "$0")"/config.yaml)
+
+# if version is "UNDEFINED PLEASE CONFIGURE IT IN config.yaml"
+if [ -z "$version" ]; then
+    version="UNDEFINED PLEASE CONFIGURE IT IN config.yaml";
+    usage;
+fi
+
+# if version doesn't exist in SAM_specs folder
+if [ ! -f "$(dirname "$0")/SAM_specs/$version.yaml" ]; then
+    echo "The version of the script is not found in the SAM_specs folder. Please provide the version in the config.yaml file."
+    bash "$0" -h; exit 1;
+fi
 
 # Check if getopt ran successfully.
 # $?: The exit status of the last command. If it is 0, then the command was successful.
@@ -68,13 +93,6 @@ done
 
 USER_START_DIR="$(pwd)"
 
-# if the file is trusted, we don't check the content
-if [ ! -z "$trusted" ]; then
-    export USER_START_DIR
-    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s} ${ask_to_open:+-a}
-    exit 0
-fi
-
 # This script reads the sam file and check if the file is empty or not, containing unauthorized characters or not and then
 # starts main.py script to read the sam file and generate the output file.
 
@@ -108,21 +126,20 @@ if [ ! -s "$input_file" ]; then
     bash "$0" -h; exit 1;
 fi
 
-# The regex pattern to check if the file is containing unauthorized characters or not is define like
-# [0-9A-Za-z!#$%&+./:;?@^_|~-^*=][0-9A-Za-z!#$%&*+./:;=?@^_|~-]*
+# if the file is trusted, we don't check the content
+if [ ! -z "$trusted" ]; then
+    export USER_START_DIR
+    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s} ${ask_to_open:+-a}
+    exit 0
+fi
 
 # Check if the sam file is not containing unauthorized characters
-if ! grep -q "[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*" "$input_file"; then
-    echo "The input file is containing unauthorized characters. Please provide a file in the right format
-    ([0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*)."  # Rajouter la date de validité de la version sam
+query=$(grep 'GLOBAL: ' "$(dirname "$0")/SAM_specs/$version.yaml" | cut -d ' ' -f 2)
+if ! grep -q "$query" "$input_file"; then
+    echo "The input file is containing unauthorized characters. Please provide a file in the right format ($query)."
     bash "$0" -h; exit 1;
 fi
 
 # parse the parameters and start the main.py script
-### OPTION LIST:
-        ##-h or --help : help information
-        ##-i or --input: input file (.sam)
-        ##-o or --output: output name files (.txt)
-# Make sure to include the right path from where the command is executed
 export USER_START_DIR
 python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s} ${ask_to_open:+-a}

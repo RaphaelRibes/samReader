@@ -1,8 +1,6 @@
 import re
 from analyse import toBinary
 import sys
-import numpy as np
-
 
 def display_error_context(valist:list, problematic_param:str) -> str:
     """
@@ -12,7 +10,7 @@ def display_error_context(valist:list, problematic_param:str) -> str:
     :return: The context of the error
     """
     # Define the parameter list
-    param_list = ["qname", "flag", "rname", "pos", "mapq", "cigar", "rnext", "pnext", "tlen", "seq", "qual"]
+    param_list = SPECS["mandatory_fields"]
 
     # Check if the problematic parameter is in the list
     if problematic_param not in param_list:
@@ -43,47 +41,47 @@ def display_error_context(valist:list, problematic_param:str) -> str:
 # Based on SAMv1 specifications
 
 def qname(tested: str) -> bool:
-    return re.match(r"[!-?A-~]{1,254}", tested) is not None
+    return re.match(SPECS['regex_queries']['QNAME'], tested) is not None
 
 def flag(tested: str) -> bool:
     if not tested.replace('-', '').isdigit():
         return False
-    return re.match(r"[01]{16}", toBinary(tested, 16)) is not None
+    return re.match(SPECS['regex_queries']['FLAG'], toBinary(tested, 16)) is not None
 
 def rname(tested: str) -> bool:
-    return re.match(r"\*|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*", tested) is not None
+    return re.match(SPECS['regex_queries']['RNAME'], tested) is not None
 
 def pos(tested: str) -> bool:
     if not tested.replace('-', '').isdigit():
         return False
-    return re.match(r"[01]{31}", toBinary(tested, 31)) is not None
+    return re.match(SPECS['regex_queries']['POS'], toBinary(tested, 31)) is not None
 
 def mapq(tested: str) -> bool:
     if not tested.replace('-', '').isdigit():
         return False
-    return re.match(r"[01]{8}", toBinary(tested, 8)) is not None
+    return re.match(SPECS['regex_queries']['MAPQ'], toBinary(tested, 8)) is not None
 
 def cigar(tested: str) -> bool:
-    return re.match(r"\*|([0-9]+[MIDNSHPX=])+", tested) is not None
+    return re.match(SPECS['regex_queries']['CIGAR'], tested) is not None
 
 def rnext(tested: str) -> bool:
-    return re.match(r"\*|=|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*", tested) is not None
+    return re.match(SPECS['regex_queries']['RNEXT'], tested) is not None
 
 def pnext(tested: str) -> bool:
     if not tested.isdigit():
         return False
-    return re.match(r"[01]{31}", toBinary(tested, 31)) is not None
+    return re.match(SPECS['regex_queries']['PNEXT'], toBinary(tested, 31)) is not None
 
 def tlen(tested: str) -> bool:
     if not tested.replace('-', '').isdigit():
         return False
-    return re.match(r"-?[01]{31}", toBinary(tested, 31)) is not None
+    return re.match(SPECS['regex_queries']['TLEN'], toBinary(tested, 31)) is not None
 
 def seq(tested: str) -> bool:
-    return re.match(r"\*|[A-Za-z=.]+", tested) is not None
+    return re.match(SPECS['regex_queries']['SEQ'], tested) is not None
 
 def qual(tested: str) -> bool:
-    return re.match(r"[!-~]+", tested) is not None
+    return re.match(SPECS['regex_queries']['QUAL'], tested) is not None
 
 def check_line(line:list, trusted=False) -> None:
     """
@@ -107,78 +105,78 @@ def check_line(line:list, trusted=False) -> None:
     :return:
     """
     if trusted: return
-    
-    # col 1 : QNAME -> str() following regex [!-?A-~]{1,254}
+
+    # col 1 : QNAME
     if not qname(line[0]):
         print(f'Error with QNAME line {line[-1]} :'
               f'\n{display_error_context(line, "qname")}\n'
               f'Expected : {line[0]} to be a string following this regex [!-?A-~]{"{1,254}"}')
         sys.exit(2)
 
-    # col 2 : FLAG -> int() following regex [01]{12,16}
+    # col 2 : FLAG
     if not flag(line[1]):
         print(f'Error with FLAG line {line[-1]} :'
               f'\n{display_error_context(line, "flag")}\n'
               f'Expected : {line[1]} to be a integer ranging from 0 to 65535')
         sys.exit(2)
 
-    # col 3 : RNAME -> str() following this regex \*|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*
+    # col 3 : RNAME
     if not rname(line[2]):
         print(f'Error with RNAME line {line[-1]} :'
               f'\n{display_error_context(line, "rname")}\n'
               f'Expected : {line[2]} to be a string following this regex [0-9A-Za-z!#$%&+./:;?@^_|~-^*=][0-9A-Za-z!#$%&*+./:;=?@^_|~-]*')
         sys.exit(2)
 
-    # col 4 : POS -> int() following this regex [0, 2^{31} - 1] (0 to 2147483647)
+    # col 4 : POS
     if not pos(line[3]):
         print(f'Error with POS line {line[-1]} :'
               f'\n{display_error_context(line, "pos")}\n'
               f'Expected : {line[3]} to be an integer ranging from 0 to 2147483647 (2^31 - 1)')
         sys.exit(2)
 
-    # col 5 : MAPQ -> int() following this regex [0, 2^{8} - 1] (0 to 255)
+    # col 5 : MAPQ
     if not mapq(line[4]):
         print(f'Error with MAPQ line {line[-1]} :'
               f'\n{display_error_context(line, "mapq")}\n'
               f'Expected : {line[4]} to be an integer ranging from 0 to 255 (2^8 - 1)')
         sys.exit(2)
 
-    # col 6 : CIGAR -> str() following this regex [0-9]+[MIDNSHPX=]
+    # col 6 : CIGAR
     if not cigar(line[5]):
         print(f'Error with CIGAR line {line[-1]} :'
               f'\n{display_error_context(line, "cigar")}\n'
               f'Expected : {line[5]} to be a string following this regex \\*|([0-9]+[MIDNSHPX=])+')
         sys.exit(2)
 
-    # col 7 : RNEXT -> str() following this regex \*|[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*
+    # col 7 : RNEXT
     if not rnext(line[6]):
         print(f'Error with RNEXT line {line[-1]} :'
               f'\n{display_error_context(line, "rnext")}\n'
               f'Expected : {line[6]} to be a string following this regex \\*|[0-9A-Za-z!#$%&+./:;?@^_|~-^*=][0-9A-Za-z!#$%&*+./:;=?@^_|~-]*')
         sys.exit(2)
 
-    # col 8 : PNEXT -> int() following this regex [0, 2^{31} - 1] (0 to 2147483647)
+    # col 8 : PNEXT
     if not pnext(line[7]):
         print(f'Error with PNEXT line {line[-1]} :'
               f'\n{display_error_context(line, "pnext")}\n'
               f'Expected : {line[7]} to be an integer ranging from 0 to 2147483647 (2^31 - 1)')
         sys.exit(2)
 
-    # col 9 : TLEN -> int() following this regex [-][0, 2^{31} - 1] (-2147483647 to 2147483647)
+    # col 9 : TLEN
     if not tlen(line[8]):
         print(f'Error with TLEN line {line[-1]} :'
               f'\n{display_error_context(line, "tlen")}\n'
               f'Expected : {line[8]} to be an integer ranging from -2147483647 to 2147483647 (-2^31 + 1 to 2^31 - 1)')
         sys.exit(2)
 
-    # col 10 : SEQ -> str() following this regex \*|[A-Za-z=.]+
+    # col 10 : SEQ
     if not seq(line[9]):
         print(f'Error with SEQ line {line[-1]} :'
               f'\n{display_error_context(line, "seq")}\n'
               f'Expected : {line[9]} to be a string following this regex \\*|[A-Za-z=.]+')
         sys.exit(2)
 
-    # col 11 : QUAL -> str() following this regex [!-~]+
+    # col 11 : QUAL
     if not qual(line[10]):
         print(f'Error with QUAL line {line[-1]} :'
               f'\n{display_error_context(line, "qual")}\n'
