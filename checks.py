@@ -1,6 +1,10 @@
 import re
 from analyse import toBinary
 import sys
+import yaml
+
+version = yaml.safe_load(open("config.yaml", "r"))
+SPECS = yaml.safe_load(open(f"SAM_specs/{version['version']}.yaml", "r"))
 
 def display_error_context(valist:list, problematic_param:str) -> str:
     """
