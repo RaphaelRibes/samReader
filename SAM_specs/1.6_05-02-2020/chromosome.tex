@@ -1,0 +1,77 @@
+% Preamble
+\documentclass[11pt]{{article}}
+
+% Packages
+\usepackage{{amsmath}}
+\usepackage{{fancyhdr}}
+\usepackage{{verbatim}}
+
+\begin{{document}}
+
+\title{{Report for {read_name}}}
+\date{{}}
+\maketitle
+
+% stop centering
+\raggedright
+\section{{Read Mapping Summary}}
+
+\noindent
+\begin{{minipage}}[t]{{0.45\textwidth}}
+\centering
+\textbf{{Single Read Summary}} \\
+\begin{{tabular}}{{|l|c|}}
+\hline
+\textbf{{Mapping Type}} & \textbf{{Count}} \\
+\hline
+Mapped & {s_mapped} \\
+Partially Mapped & {s_partially_mapped} \\
+Unmapped & {s_unmapped} \\
+\hline
+Total & {s_total} \\
+\hline
+\end{{tabular}}
+\end{{minipage}}%
+\hfill
+\begin{{minipage}}[t]{{0.45\textwidth}}
+\centering
+\textbf{{Pair Read Summary}} \\
+\begin{{tabular}}{{|l|c|}}
+\hline
+\textbf{{Mapping Type}} & \textbf{{Count}} \\
+\hline
+Mapped & {p_mapped} \\
+Partially Mapped & {p_partially_mapped} \\
+Unmapped & {p_unmapped} \\
+\hline
+Total & {p_total} \\
+\hline
+\end{{tabular}}
+\end{{minipage}}
+
+\section{{Global cigar mutation observed }}
+\centering
+This section only include mapped and partially mapped CIGAR values since unmapped reads do not have one.
+\begin{{table}}[h]
+\centering
+\begin{{tabular}}{{|l|c|}}
+\hline
+\textbf{{Mutation Type}} & \textbf{{Count}} \\
+\hline
+Alignment match & {M} \\
+Insertion to the reference & {I} \\
+Deletion from the reference & {D} \\
+Soft clipping & {S} \\
+Hard clipping & {H} \\
+Skipped region & {N} \\
+Padding & {P} \\
+Sequence match & {X} \\
+Sequence mismatch & {E} \\
+\hline
+\end{{tabular}}
+\end{{table}}
+
+\thispagestyle{{empty}} % Suppress page number on the title page
+
+
+\end{{document}}
