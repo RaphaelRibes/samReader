@@ -39,7 +39,7 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
 ############### IMPORT MODULES ###############
 
-import os, sys, getopt
+import os, sys, getopt, subprocess
 from tqdm.auto import tqdm
 
 from checks import check_line, line_to_payload
@@ -63,11 +63,9 @@ def getOptions(argv):
     trusted = False
     verbose = False
     single_file = False  # New flag for a single PDF and fasta file
+    ask_to_open = False  # New flag to ask if the user wants to open the PDF file
     for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            print("samReader.sh -i <inputfile> -o <outputfile> [-t] [-v] [-s]")
-            sys.exit()
-        elif opt in ("-i", "--input"):
+        if opt in ("-i", "--input"):
             inputfile = arg
         elif opt in ("-o", "--output"):
             outputfile = arg
@@ -77,12 +75,14 @@ def getOptions(argv):
             verbose = True
         elif opt in ("-s", "--single"):
             single_file = True
-    return inputfile, outputfile, trusted, verbose, single_file
+        elif opt in ("-a", "--ask-to-open"):
+            ask_to_open = True
+    return inputfile, outputfile, trusted, verbose, single_file, ask_to_open
 
 
 ## Check, Read and store the data
 
-def checkFormat(file, trusted=False):
+def checkFormat(file, trusted=False, verbose=False):
     """
         Check the format of the input file
     """
@@ -97,10 +97,9 @@ def checkFormat(file, trusted=False):
 
         # we're gonna check that every columns follows the right formating
         desc = "Checking the format of the input file and storing the data" if not trusted else "Storing the data"
-        for n, line in tqdm(enumerate(sam_line),
-                            desc=desc,
-                            total=len(sam_line)):
+        iterator = tqdm(enumerate(sam_line), desc=desc, total=len(sam_line)) if verbose else enumerate(sam_line)
 
+        for n, line in iterator:
             if line.startswith('@'): continue
             line = line.split('\t')
 
@@ -110,13 +109,12 @@ def checkFormat(file, trusted=False):
             qname = payload['qname'].split('-')
             qname = qname[0] if len(qname) != 1 else payload['qname'].split('_')[0]
 
-            if qname not in clean:
-                clean[qname] = []
-
+            # Those two lines allows to store the data for each reads that can be found in the sam file
+            if qname not in clean: clean[qname] = []  # Create the key if it doesn't exist
             clean[qname].append(payload)
 
-            if len(line) > 11:
-                clean[qname][-1]['extra'] = line[11:]
+            # I don't really use this part of the code, but maybe one day I will
+            if len(line) > 11: clean[qname][-1]['extra'] = line[11:]
 
         return clean
 
@@ -130,25 +128,25 @@ def main(argv):
     """
         Main function
     """
-    inputfile, outputfile, trusted, verbose, single_file = getOptions(argv)
+    inputfile, outputfile, trusted, verbose, single_file, ask_to_open = getOptions(argv)
 
     # Create a folder to store the output files
     if outputfile == "": outputfile = os.path.basename(inputfile)[:-4]
 
-    user_start_dir = os.getenv("USER_START_DIR", os.getcwd())
-    results_dir = os.path.join(user_start_dir, f"{outputfile}_results")
+    user_start_dir = os.getenv("USER_START_DIR", os.getcwd())  # Get the user start directory
+    results_dir = os.path.join(user_start_dir, f"{outputfile}_results")  # Create the results directory
 
-    os.makedirs(results_dir, exist_ok=True)
-    clean = checkFormat(inputfile, trusted=trusted)
+    os.makedirs(results_dir, exist_ok=True)  # Create the directory if it doesn't exist
+    clean = checkFormat(inputfile, trusted=trusted, verbose=verbose)  # Check the format of the input file and store the data
 
-    for key, value in clean.items():
-        results = readMapping(value, results_dir, single_file, verbose)
+    for key, value in clean.items():  # Iterate over the reads
+        results = readMapping(value, results_dir, single_file=single_file, verbose=verbose)
 
-        recap = globalPercentCigar(value)
+        recap = globalPercentCigar(value, verbose=verbose)
         for key1, value1 in recap.items():
             results[key1] = value1
 
-        summarize(key, results, results_dir)
+        summarize(key, results, results_dir, verbose=verbose, ask_to_open=ask_to_open)
 
 
 ############### LAUNCH THE SCRIPT ###############

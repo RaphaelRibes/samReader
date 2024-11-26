@@ -16,11 +16,15 @@ usage() {
   echo "  -t, --trusted             (optional) Skips checking the content of the input file"
   echo "  -v, --verbose             (optional) Shows details of each step"
   echo "  -s, --single-fasta        (optional) Creates only one output for the fasta file"
+  echo "  -a, --ask-to-open         (optional) Asks to open the output file"
   exit
 }
 
 # Using getopt to support both short and long options
 PARSED_OPTIONS=$(getopt -o "hi:o:tvs" -l "help,input:,output:,trusted,verbose,single" -n "$0" -- "$@")
+
+# Check if getopt ran successfully.
+# $?: The exit status of the last command. If it is 0, then the command was successful.
 if [ $? != 0 ]; then
     echo "Error in options"
     bash "$0" -h
@@ -36,6 +40,7 @@ output_file=""
 trusted=
 verbose=
 single_file=
+ask_to_open=
 
 # Parsing options
 while true; do
@@ -52,6 +57,8 @@ while true; do
             verbose=true; shift;;
         -s|--single-fasta)
             single_file=true; shift;;
+        -a|--ask-to-open)
+            ask_to_open=true; shift;;
         --)
             shift; break;;
         *)
@@ -59,10 +66,12 @@ while true; do
     esac
 done
 
+USER_START_DIR="$(pwd)"
+
 # if the file is trusted, we don't check the content
 if [ ! -z "$trusted" ]; then
-    export USER_START_DIR="$(pwd)"
-    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s}
+    export USER_START_DIR
+    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s} ${ask_to_open:+-a}
     exit 0
 fi
 
@@ -72,13 +81,13 @@ fi
 # Check if the input file is provided or not
 if [ -z "$input_file" ]; then
     echo "Please provide the input file."
-    exit 1
+    bash "$0" -h; exit 1;
 fi
 
 # Check if the path of the input file is correct or not
 if [ ! -f "$input_file" ]; then
     echo "The input file does not exist. Please provide the correct path."
-    exit 1
+    bash "$0" -h; exit 1;
 fi
 
 # If there is a output file, check if the path of the output file is correct or not
@@ -90,13 +99,13 @@ fi
 # Check if the sam file is a directory or not
 if [ -d "$input_file" -o -d "$output_file" ]; then
     echo "The input file is a directory. Please provide a file."
-    exit 1
+    bash "$0" -h; exit 1;
 fi
 
 # Check if the sam file is empty or not
 if [ ! -s "$input_file" ]; then
     echo "The input file is empty. Please provide a non-empty file."
-    exit 1
+    bash "$0" -h; exit 1;
 fi
 
 # The regex pattern to check if the file is containing unauthorized characters or not is define like
@@ -105,7 +114,7 @@ fi
 # Check if the sam file is not containing unauthorized characters
 if ! grep -q "[0-9A-Za-z!#$%&+.\/:;?@^_|~\-^\*=][0-9A-Za-z!#$%&*+.\/:;=?@^_|~-]*" "$input_file"; then
     echo "The input file is containing unauthorized characters. Please provide a file in the right format."
-    exit 1
+    bash "$0" -h; exit 1;
 fi
 
 # parse the parameters and start the main.py script
@@ -114,5 +123,5 @@ fi
         ##-i or --input: input file (.sam)
         ##-o or --output: output name files (.txt)
 # Make sure to include the right path from where the command is executed
-export USER_START_DIR="$(pwd)"
-python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s}
+export USER_START_DIR
+python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s} ${ask_to_open:+-a}

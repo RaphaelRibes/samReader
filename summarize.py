@@ -102,15 +102,18 @@ Total & {p_total} \\
     subprocess.run(["mv", f"{path}/temp/{fileName}.pdf", f"{path}/{fileName}.pdf"])
 
 
-def summarize(fileName, results, path):
+def summarize(fileName, results, path, verbose=False, ask_to_open=False):
     makeLatex(fileName, results, path)
     # Remove the temp folder
     os.remove(f"{path}/{fileName}.tex")
     shutil.rmtree(f"{path}/temp")
 
-    print(f'\nThe results are available in the file {path}/{fileName}.pdf')
-    yn = input("Do you want to open the file ? (y/n) ")
-    if yn == "y":
-        subprocess.run(["xdg-open", f"{path}/{fileName}.pdf"])
-    else:
-        pass
+    if verbose:
+        print(f'\nThe results are available in the file {path}/{fileName}.pdf')
+
+    if ask_to_open:
+        yn = input("Do you want to open the file ? (y/n) ")
+        if yn == "y":
+            subprocess.run(["xdg-open", f"{path}/{fileName}.pdf"])
+        else:
+            pass

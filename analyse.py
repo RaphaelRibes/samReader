@@ -32,10 +32,8 @@ def toFasta(line, mapping_situation):
         str: A string header in FASTA format.
     """
     header = f">{line['qname']} {mapping_situation}".strip() + f" MAPQ:{line['mapq']}"
-    pos = line['pos']
-    header = f"{header} POS:{pos}" if pos != "0" else f"{header}"
-    sequence = line['seq']
-    fasta_format = f"{header}\n{sequence}\n"
+    header = f"{header} POS:{line['pos']}" if line['pos'] != "0" else f"{header}"
+    fasta_format = f"{header}\n{line['seq']}\n"
     return fasta_format
 
 #### Analyze the partially mapped or unmapped reads ####
@@ -57,7 +55,7 @@ def readMapping(payload, path, single_file=False, verbose=True):
     results = {"s_mapped": 0, "s_partially_mapped": 0, "s_unmapped": 0,
                "p_mapped": 0, "p_partially_mapped": 0, "p_unmapped": 0}
 
-    iterator = list(zip(payload[::2], payload[1::2]))
+    iterator = list(zip(payload[::2], payload[1::2]))  # Pair reads together
     if verbose:
         iterator = tqdm(iterator,
                         desc="Analyzing partially mapped and unmapped reads",
@@ -155,7 +153,7 @@ def percentMutation(dico) -> list:
     return res
 
 
-def globalPercentCigar(payload:list[dict], verbose=True):
+def globalPercentCigar(payload:list[dict], verbose=False):
     """
         Analyze the CIGAR strings and return a DataFrame with the percentage of each mutation type.
 
@@ -178,7 +176,7 @@ def globalPercentCigar(payload:list[dict], verbose=True):
         dico = readCigar(line["cigar"])
         percent_mut = percentMutation(dico)
         if sum(percent_mut) == 100:
-            data.append(percentMutation(dico))
+            data.append(percent_mut)
 
     data = np.array(data)
     nb_reads = len(data)

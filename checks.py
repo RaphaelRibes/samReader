@@ -4,6 +4,12 @@ import sys
 
 
 def display_error_context(valist:list, problematic_param:str) -> str:
+    """
+    Display the context of the error in the problematic parameter
+    :param valist: List of values
+    :param problematic_param: The problematic parameter
+    :return: The context of the error
+    """
     # Define the parameter list
     param_list = ["qname", "flag", "rname", "pos", "mapq", "cigar", "rnext", "pnext", "tlen", "seq", "qual"]
 
@@ -15,18 +21,18 @@ def display_error_context(valist:list, problematic_param:str) -> str:
     index = param_list.index(problematic_param)
 
     # Define the surrounding parameters (one before and one after)
-    left_param = str(valist[index - 1]) if index > 0 else ""
-    right_param = str(valist[index + 1]) if index < len(param_list) - 1 else ""
+    left_param = str(valist[index - 1]) if index > 0 else ""  # If index is 0, there is no left parameter
+    right_param = str(valist[index + 1]) if index < len(param_list) - 1 else ""  # If index is the last, there is no right parameter
     problematic_value = str(valist[index])
 
     # Create the first line with parameter names
     first_line = f"{left_param}   {problematic_value}   {right_param}".strip()  # Remove leading and trailing spaces
-    first_line = f"{'...   ' if index > 1 else ''}" + first_line
-    first_line = f"{first_line}{'   ...' if index < len(param_list)-2 else ''}"
+    first_line = f"{'...   ' if index > 1 else ''}" + first_line  # Add ellipsis if the left parameter is not the first one
+    first_line = f"{first_line}{'   ...' if index < len(param_list)-2 else ''}"  # Add ellipsis if the right parameter is not the last one
 
     # Create the second line with carets under the problematic parameter
-    caret_position = len(left_param) + (3 if left_param!="" else 0) + (6 if index > 1 else 0)
-    caret_line = " " * caret_position + "^" * len(problematic_value)
+    caret_position = len(left_param) + (3 if left_param!="" else 0) + (6 if index > 1 else 0)  # Calculate the position of the caret
+    caret_line = " " * caret_position + "^" * len(problematic_value)  # Create the line with the caret
 
     # Combine both lines and return
     return f"{first_line}\n{caret_line}"
@@ -51,6 +57,10 @@ def line_to_payload(line:list, n:int) -> dict:
     }
     return payload
 
+
+### Check functions ###
+# All the check functions return a boolean value
+# Based on SAMv1 specifications
 
 def qname(tested: str) -> bool:
     return re.match(r"[!-?A-~]{1,254}", tested) is not None
@@ -112,8 +122,8 @@ def check_line(payload:dict, trusted=False) -> None:
     - qual: str
     - line: int
 
-    :param payload:
-    :param trusted:
+    :param payload: The payload to check
+    :param trusted: If the payload is trusted or not
     :return:
     """
     if trusted: return
