@@ -41,7 +41,6 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
 import os, sys, getopt
 from tqdm.auto import tqdm
-import numpy as np
 
 from checks import check_line
 from analyse import readMapping, globalPercentCigar
@@ -54,7 +53,7 @@ def getOptions(argv):
     Get the parsed options, supporting both short and long forms
     """
     try:
-        opts, args = getopt.getopt(argv, "hi:o:tvs", ["help", "input=", "output=", "trusted", "verbose", "single"])
+        opts, args = getopt.getopt(argv, "hi:o:tvsa:", ["help", "input=", "output=", "trusted", "verbose", "single", 'ask-to-open'])
     except getopt.GetoptError:
         os.system("samReader.sh -h")
         sys.exit(2)
