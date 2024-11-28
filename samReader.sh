@@ -90,8 +90,6 @@ while true; do
     esac
 done
 
-USER_START_DIR="$(pwd)"
-
 # This script reads the sam file and check if the file is empty or not, containing unauthorized characters or not and then
 # starts main.py script to read the sam file and generate the output file.
 
@@ -127,7 +125,6 @@ fi
 
 # if the file is trusted, we don't check the content
 if [ ! -z "$trusted" ]; then
-    export USER_START_DIR
     python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s} ${ask_to_open:+-a}
     exit 0
 fi
@@ -140,5 +137,4 @@ if ! grep -q "$query" "$input_file"; then
 fi
 
 # parse the parameters and start the main.py script
-export USER_START_DIR
 python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s} ${ask_to_open:+-a}

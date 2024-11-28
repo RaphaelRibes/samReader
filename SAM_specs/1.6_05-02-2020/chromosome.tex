@@ -5,6 +5,10 @@
 \usepackage{{amsmath}}
 \usepackage{{fancyhdr}}
 \usepackage{{verbatim}}
+\usepackage{{graphicx}}
+\usepackage{{float}}
+\usepackage[margin=2.5cm,top=0.5cm]{{geometry}}
+
 
 \begin{{document}}
 
@@ -70,6 +74,13 @@ Sequence mismatch & {E} \\
 \hline
 \end{{tabular}}
 \end{{table}}
+
+% Insert an image
+\begin{{figure}}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{{temp/chromosome.png}}
+\caption{{CIGAR Mutation Distribution}}
+\end{{figure}}
 
 \thispagestyle{{empty}} % Suppress page number on the title page
 

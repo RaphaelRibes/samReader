@@ -41,6 +41,10 @@ __licence__ ="""This program is free software: you can redistribute it and/or mo
 
 import os, sys, getopt, yaml, importlib.util
 from tqdm.auto import tqdm
+import numpy as np
+import shutil
+
+from plotit import plot_depth
 
 ############### FUNCTIONS TO :
 ## 0/ Get options,
@@ -86,7 +90,7 @@ def checkFormat(file, check_line, trusted=False, verbose=False):
             sam_line = f.readlines()
 
         clean = {}
-
+        depth = {}
         # we're gonna check that every columns follows the right formating
         desc = "Checking the format of the input file and storing the data" if not trusted else "Storing the data"
         iterator = tqdm(enumerate(sam_line), desc=desc, total=len(sam_line)) if verbose else enumerate(sam_line)
@@ -102,6 +106,7 @@ def checkFormat(file, check_line, trusted=False, verbose=False):
 
             # Those two lines allows to store the data for each reads that can be found in the sam file
             if qname not in clean: clean[qname] = []  # Create the key if it doesn't exist
+            if qname not in depth: depth[qname] = []  # Create the key if it doesn't exist
             clean[qname].append(line[:11])  # we reduce the size of the data to store
 
         return clean
@@ -121,7 +126,6 @@ def main(argv):
     # Create a folder to store the output files
     if outputfile == "": outputfile = os.path.basename(inputfile)[:-4]
 
-    user_start_dir = os.getenv("USER_START_DIR", os.getcwd())  # Get the user start directory
     results_dir = os.path.join(os.getcwd(), f"{outputfile}_results")  # Create the results directory
 
     os.makedirs(results_dir, exist_ok=True)  # Create the directory if it doesn't exist
@@ -139,15 +143,23 @@ def main(argv):
 
     clean = checkFormat(inputfile, trusted=trusted, verbose=verbose, check_line=modules['checks'].check_line)  # Check the format of the input file and store the data
 
+    os.makedirs(os.path.join(os.getcwd(), "temp"), exist_ok=True)
     for key, value in clean.items():  # Iterate over the reads
-        results = modules["analyse"].readMapping(value, results_dir, single_file=single_file, verbose=verbose)
+        value = np.array(value)  # Convert the list to a numpy array
+        depth = np.zeros((value[:, 3].astype(int).max()+len(value[0, 9]), ))
 
-        recap = modules["analyse"].globalPercentCigar(value, verbose=verbose)
+        results = modules["analyse"].readMapping(value, results_dir, verbose=verbose)
+
+        recap, depth = modules["analyse"].globalPercentCigar(value, depth, verbose=verbose)
+
+        plot_depth(depth)
         for key1, value1 in recap.items():
             results[key1] = value1
 
         modules["summarize"].summarize(key, results, results_dir, verbose=verbose, ask_to_open=ask_to_open)
 
+    # remove the temp directory
+    shutil.rmtree(os.path.join(os.getcwd(), "temp"))
 
 ############### LAUNCH THE SCRIPT ###############
 

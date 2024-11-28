@@ -33,6 +33,9 @@ def make_chromosome(file_name, results, path):
 
     # Compile the .tex file to a .pdf file
 
+    # This line is just for debugging, ignore
+    # subprocess.run(["latexmk", f"--output-directory={path}/temp", "-pdf", os.path.join(path, f"{file_name}.tex")])
+
     with open(os.devnull, 'w') as devnull:
         subprocess.run(["latexmk", "-silent", f"--output-directory={path}/temp", "-pdf", os.path.join(path, f"{file_name}.tex")],
                        stdout=devnull, stderr=devnull)
