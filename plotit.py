@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os, shutil
 
 def plot_depth(depth):
     """
@@ -53,5 +54,34 @@ def plot_depth(depth):
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
 
-    plt.savefig("temp/chromosome.png")
+    plt.savefig("temp/chromosome.png", dpi=300)
     plt.close()
+
+def plot_mapping_ratio(results_dir: str):
+    # iterate over the file that end with .fasta and count the numbers of lines
+    ratio = []
+    names = []
+    for file in os.listdir(results_dir):
+        file_path = os.path.join(results_dir, file)
+        if os.path.isdir(file_path):
+            sizes = []
+            names.append(file)
+            for subfile in os.listdir(file_path):
+                subfile_path = os.path.join(file_path, subfile)
+                with open(subfile_path, "r") as f:
+                    sizes.append(len(f.readlines())//2)
+
+            # sizes = [only_unmapped, only_mapped, only_partially_mapped]
+            ratio.append((sizes[1] + 0.5+sizes[2]) / sum(sizes))
+
+    plt.figure(figsize=(10, 5))
+    plt.bar(names, ratio)
+    plt.ylabel("Ratio of mapped reads/total")
+
+    plt.savefig("temp/mapping_ratio.png", dpi=300)
+    plt.close()
+
+if __name__ == "__main__":
+    os.makedirs(os.path.join(os.getcwd(), "temp"), exist_ok=True)
+    plot_mapping_ratio("mapping_results")
+    shutil.rmtree(os.path.join(os.getcwd(), "temp"))

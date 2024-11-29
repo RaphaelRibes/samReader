@@ -44,7 +44,7 @@ from tqdm.auto import tqdm
 import numpy as np
 import shutil
 
-from plotit import plot_depth
+from plotit import plot_depth, plot_mapping_ratio
 
 ############### FUNCTIONS TO :
 ## 0/ Get options,
@@ -135,20 +135,21 @@ def main(argv):
                "checks": None,
                "summarize": None}
 
-    for key in modules:
-        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SAM_specs", version, f"{key}.py")
-        spec = importlib.util.spec_from_file_location(key, file_path)
-        modules[key] = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(modules[key])
+    for module in modules:
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SAM_specs", version, f"{module}.py")
+        spec = importlib.util.spec_from_file_location(module, file_path)
+        modules[module] = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modules[module])
 
     clean = checkFormat(inputfile, trusted=trusted, verbose=verbose, check_line=modules['checks'].check_line)  # Check the format of the input file and store the data
 
     os.makedirs(os.path.join(os.getcwd(), "temp"), exist_ok=True)
-    for key, value in clean.items():  # Iterate over the reads
+    total = None
+    for chromosome, value in clean.items():  # Iterate over the reads
         value = np.array(value)  # Convert the list to a numpy array
         depth = np.zeros((value[:, 3].astype(int).max()+len(value[0, 9]), ))
 
-        results = modules["analyse"].readMapping(value, results_dir, verbose=verbose)
+        results = modules["analyse"].readMapping(value, os.path.join(results_dir, chromosome), verbose=verbose)
 
         recap, depth = modules["analyse"].globalPercentCigar(value, depth, verbose=verbose)
 
@@ -156,7 +157,14 @@ def main(argv):
         for key1, value1 in recap.items():
             results[key1] = value1
 
-        modules["summarize"].summarize(key, results, results_dir, verbose=verbose, ask_to_open=ask_to_open)
+        modules["summarize"].summarize(chromosome, results, results_dir, verbose=verbose)
+
+        if total is None: total = results
+        else: total = {chromosome: total[chromosome] + results[chromosome] for chromosome in total}
+
+    plot_mapping_ratio(results_dir)
+    total['chromosomes'] = clean.keys()
+    modules["summarize"].summarize(outputfile, total, results_dir, verbose=verbose, genome=True)
 
     # remove the temp directory
     shutil.rmtree(os.path.join(os.getcwd(), "temp"))

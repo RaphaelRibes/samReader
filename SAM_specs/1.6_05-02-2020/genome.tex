@@ -1,0 +1,55 @@
+% Preamble
+\documentclass[11pt]{{article}}
+
+% Packages
+\usepackage{{amsmath}}
+\usepackage{{fancyhdr}}
+\usepackage{{verbatim}}
+\usepackage{{graphicx}}
+\usepackage{{float}}
+\usepackage[margin=2.5cm,top=0.5cm]{{geometry}}
+
+
+\begin{{document}}
+
+\title{{Report for {genome}}}
+\date{{}}
+\maketitle
+
+% stop centering
+\raggedright
+\section{{Genome Mapping Summary}}
+
+% insert an image
+\begin{{figure}}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{{temp/mapping_ratio}}
+\caption{{Mapping Ratio $\frac{{mapped*\frac{{partially mapped}}{{2}}}}{{total}}$}}
+\end{{figure}}
+
+\section{{Global cigar mutation observed }}
+\centering
+This section only include mapped and partially mapped CIGAR values since unmapped reads do not have one.
+\begin{{table}}[h]
+\centering
+\begin{{tabular}}{{|l|c|}}
+\hline
+\textbf{{Mutation Type}} & \textbf{{Count}} \\
+\hline
+Alignment match & {M} \\
+Insertion to the reference & {I} \\
+Deletion from the reference & {D} \\
+Soft clipping & {S} \\
+Hard clipping & {H} \\
+Skipped region & {N} \\
+Padding & {P} \\
+Sequence match & {X} \\
+Sequence mismatch & {E} \\
+\hline
+\end{{tabular}}
+\end{{table}}
+
+\thispagestyle{{empty}} % Suppress page number on the title page
+
+
+\end{{document}}

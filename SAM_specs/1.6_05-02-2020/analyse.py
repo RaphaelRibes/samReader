@@ -29,6 +29,7 @@ def toFasta(line):
 #### Analyze the partially mapped or unmapped reads ####
 def readMapping(payload, path, verbose=True):
     # Determine file handlers dynamically
+    os.makedirs(path, exist_ok=True)
     file_handlers = {
         "partially_mapped": open(f"{path}/only_partially_mapped.fasta", "w"),
         "unmapped": open(f"{path}/only_unmapped.fasta", "w"),
@@ -176,33 +177,16 @@ def globalPercentCigar(payload:list[list], depth, verbose=False):
     data = np.array(data)
     nb_reads = len(data)
 
-    def format_metric(value):
-        """
-        Format the metric value as a percentage string.
-
-        Args:
-            value (int): The sum of a specific mutation type.
-
-        Returns:
-            str: The formatted percentage string.
-        """
-        mid = str(round(value / nb_reads, 2))
-        if value / nb_reads == 0:
-            mid = "0"
-        elif value / nb_reads < 0.01:
-            mid = "$<$0.01"
-        return mid + "\\%"
-
     columns_dict = {
-    "M": format_metric(data[:, 0].sum()),
-    "I": format_metric(data[:, 1].sum()),
-    "D": format_metric(data[:, 2].sum()),
-    "S": format_metric(data[:, 3].sum()),
-    "H": format_metric(data[:, 4].sum()),
-    "N": format_metric(data[:, 5].sum()),
-    "P": format_metric(data[:, 6].sum()),
-    "X": format_metric(data[:, 7].sum()),
-    "=": format_metric(data[:, 8].sum()),
+    "M": data[:, 0].sum(),
+    "I": data[:, 1].sum(),
+    "D": data[:, 2].sum(),
+    "S": data[:, 3].sum(),
+    "H": data[:, 4].sum(),
+    "N": data[:, 5].sum(),
+    "P": data[:, 6].sum(),
+    "X": data[:, 7].sum(),
+    "=": data[:, 8].sum(),
 }
     return columns_dict, depth
 
