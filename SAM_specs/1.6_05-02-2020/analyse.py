@@ -2,7 +2,6 @@ import numpy as np
 from tqdm.auto import tqdm
 import os
 import sys
-import re
 
 # I know it looks horrible, but I had to do it to make it work
 two_levels_up = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
