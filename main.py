@@ -53,10 +53,12 @@ def getOptions(argv):
     Get the parsed options, supporting both short and long forms
     """
     try:
-        opts, args = getopt.getopt(argv, "hi:o:tva:", ["help", "input=", "output=", "trusted", "verbose", 'ask-to-open'])
+        opts, args = getopt.getopt(argv, "hi:o:tva:", ["help", "input=", "output=", "trusted", "verbose", "ask-to-open"])
     except getopt.GetoptError:
         os.system("samReader.sh -h")
         sys.exit(2)
+
+    print(opts, args)
 
     inputfile = ""
     outputfile = ""
@@ -91,6 +93,8 @@ def checkFormat(file, check_line, trusted=False, verbose=False, separator='-'):
         # we're gonna check that every columns follows the right formating
         desc = "Checking the format of the input file and storing the data" if not trusted else "Storing the data"
         iterator = tqdm(enumerate(sam_line), desc=desc, total=len(sam_line)) if verbose else enumerate(sam_line)
+        maxpos = 0
+        maxpos_cigar = ""
 
         for n, line in iterator:
             if line.startswith('@'): continue
@@ -104,8 +108,12 @@ def checkFormat(file, check_line, trusted=False, verbose=False, separator='-'):
             if qname not in clean: clean[qname] = []  # Create the key if it doesn't exist
             if qname not in depth: depth[qname] = []  # Create the key if it doesn't exist
             clean[qname].append(line[:11])  # we reduce the size of the data to store
+            if int(line[3]) > maxpos:
+                maxpos = int(line[3])
+                maxpos_cigar = line[5]
 
-        return clean
+
+        return clean, (maxpos, maxpos_cigar)
 
     else:
         print("The input file is not in the correct format. Please provide a .sam file.")

@@ -12,7 +12,7 @@ usage() {
   echo " (__  ) / /_/ /  / / / / / / / _, _/ /  __// /_/ / / /_/ /  /  __/ / /    "
   echo "/____/  \____/  /_/ /_/ /_/ /_/ |_|  \___/ \____/  \____/   \___/ /_/     "
   echo
-  echo "Usage: $0 -i|--input input_file <input.sam> [-o|--output <output_directory>] [-t|--trusted] [-v|--verbose] [-s|--single-fasta] [-h|--help]"
+  echo "Usage: $0 -i|--input input_file <input.sam> [-o|--output <output_directory>] [-t|--trusted] [-v|--verbose][-h|--help]"
   # if version is "UNDEFINED PLEASE CONFIGURE IT IN config.yaml"
   if [ "$version" = "UNDEFINED PLEASE CONFIGURE IT IN config.yaml" ]; then
       echo -e "${RED}SAM Version: $version"
@@ -25,7 +25,6 @@ usage() {
   echo "  -o, --output <directory>  (optional) Specifies the output directory (by default the current directory)"
   echo "  -t, --trusted             (optional) Skips checking the content of the input file"
   echo "  -v, --verbose             (optional) Shows details of each step"
-  echo "  -s, --single-fasta        (optional) Creates only one output for the fasta file"
   echo "  -a, --ask-to-open         (optional) Asks to open the output file"
   exit
 }
@@ -122,7 +121,7 @@ fi
 
 # if the file is trusted, we don't check the content
 if [ ! -z "$trusted" ]; then
-    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v}${ask_to_open:+-a}
+    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${ask_to_open:+-a}
     exit 0
 fi
 

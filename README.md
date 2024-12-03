@@ -29,11 +29,23 @@
    cd samReader
    ```
 
-3. **Install Dependencies**:
+3. **Install Venv**:
 
    ```bash
-   pip install -r requirements.txt
+   python3 -m venv .venv
    ```
+
+4. **Activate Venv**:
+
+   ```bash
+   source .venv/bin/activate
+   ```
+   
+5. **Install Requirements**:
+
+   ```bash
+    pip install -r requirements.txt
+    ```
 
 ## Usage
 
@@ -45,12 +57,13 @@ bash samReader.sh -i /path/to/your/mapping.sam
 
 ### Options
 
-- `-i` or `--input`: Path to the input SAM file.
-- `-o` or `--output`: (Optional) Specify the output directory. If not provided, the output will be saved in the current directory. Doesn't work right now.
-- `-t` or `--trusted`: (Optional) Trust the input format without performing format checks.
-- `-v` or `--verbose`: (Optional) Enable verbose mode.
-- `-s` or `--single-fasta`: (Optional) Create only one fasta file per read
-
+- `-i` or `--input`:        Path to the input SAM file.
+- `-o` or `--output`:      (Optional) Specify the output directory. If not provided, the output will be saved in the current directory. Doesn't work right now.
+- `-t` or `--trusted`:     (Optional) Trust the input format without performing format checks.
+- `-v` or `--verbose`:     (Optional) Enable verbose mode.
+- `-a` or `--ask-to-open`: (Optional) Ask to open the summary report after the analysis.
+- `-h` or `--help`:         Display the help message.
+- 
 ## Output
 
 The tool generates the following outputs:
