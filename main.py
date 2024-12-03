@@ -155,7 +155,7 @@ def main(argv):
 
         recap, depth = modules["analyse"].globalPercentCigar(value, depth, verbose=verbose)
 
-        plot_depth(depth)
+        plot_depth(depth, bins=config['bins'])
         for key1, value1 in recap.items():
             results[key1] = value1
 

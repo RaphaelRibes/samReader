@@ -3,3 +3,4 @@ significant figures: 2  # Number of significant figures to keep for the CIGAR mu
 separator: '-'  # Separator used in qname
 # For exemple Clone1-95056 the separator is '-' -> Clone1 is the chromosome
 #             20_62014963_62015458_2:0:0_4:0:0_1a0 the separator is '_' -> 20 is the chromosome
+bins: 1000  # Number of bins for the coverage plot
