@@ -1,5 +1,8 @@
 import subprocess, os, shutil, string
+import yaml
 
+two_levels_up = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+config = yaml.safe_load(open(f"{two_levels_up}/config.yaml", "r"))
 
 def compile_latex(path, file_name, latex_content):
     with open(os.path.join(path, f"{file_name}.tex"), "w") as file:
@@ -27,7 +30,7 @@ def format_metric(value, nb_reads):
     Returns:
         str: The formatted percentage string.
     """
-    mid = f"{(value / nb_reads) * 100:.2f}"
+    mid = f"{(value / nb_reads) * 100:.{config['significant figures']}f}"
     return mid + "\\%"
 
 
