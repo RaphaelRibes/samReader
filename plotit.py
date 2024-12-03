@@ -15,9 +15,6 @@ def plot_depth(depth):
     # Compute the original positions in the sequence
     step = len(depth) // 100
 
-    classes = [depth[i * step:(i + 1) * step] for i in range(100)]
-    class_means = np.array([np.mean(cls) for cls in classes])
-
     # Reshape and compute the means and quartiles
     truncated_array = depth.reshape(-1, step)
     sampled_array = np.mean(truncated_array, axis=1)
