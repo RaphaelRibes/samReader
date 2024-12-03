@@ -34,7 +34,7 @@ usage() {
 PARSED_OPTIONS=$(getopt -o "hi:o:tvs" -l "help,input:,output:,trusted,verbose,single" -n "$0" -- "$@")
 
 # Open the config.yaml file and get the version
-version=$(grep -oP "[0-9]+\.[0-9]+_[0-9]{2}-[0-9]{2}-[0-9]{4}" "$(dirname "$0")"/config.yaml)
+version=$(grep -oP "[0-9]+\.[0-9]+_[0-9]{4}-[0-9]{2}-[0-9]{2}" "$(dirname "$0")"/config.yaml)
 
 # if version is "UNDEFINED PLEASE CONFIGURE IT IN config.yaml"
 if [ -z "$version" ]; then
