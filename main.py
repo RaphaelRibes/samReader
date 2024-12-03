@@ -81,7 +81,7 @@ def getOptions(argv):
 
 
 ## Check, Read and store the data
-def checkFormat(file, check_line, trusted=False, verbose=False):
+def checkFormat(file, check_line, trusted=False, verbose=False, separator='-'):
     """
         Check the format of the input file
     """
@@ -101,8 +101,7 @@ def checkFormat(file, check_line, trusted=False, verbose=False):
 
             check_line(line, trusted=trusted)
 
-            qname = line[0].split('-')
-            qname = qname[0] if len(qname) != 1 else  line[0].split('_')[0]
+            qname = line[0].split(separator)[0]
 
             # Those two lines allows to store the data for each reads that can be found in the sam file
             if qname not in clean: clean[qname] = []  # Create the key if it doesn't exist
@@ -130,24 +129,27 @@ def main(argv):
 
     os.makedirs(results_dir, exist_ok=True)  # Create the directory if it doesn't exist
 
-    version = yaml.safe_load(open(f"{os.path.dirname(os.path.abspath(__file__))}/config.yaml", "r"))['version']  # Load the version from the config file
+    config = yaml.safe_load(open(f"{os.path.dirname(os.path.abspath(__file__))}/config.yaml", "r")) # Load the version from the config file
     modules = {"analyse": None,
                "checks": None,
                "summarize": None}
 
     for module in modules:
-        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SAM_specs", version, f"{module}.py")
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SAM_specs", config['version'] , f"{module}.py")
         spec = importlib.util.spec_from_file_location(module, file_path)
         modules[module] = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(modules[module])
 
-    clean = checkFormat(inputfile, trusted=trusted, verbose=verbose, check_line=modules['checks'].check_line)  # Check the format of the input file and store the data
+    # Check the format of the input file and store the data
+    clean = checkFormat(inputfile, trusted=trusted, verbose=verbose, check_line=modules['checks'].check_line, separator=config['separator'])
 
     os.makedirs(os.path.join(os.getcwd(), "temp"), exist_ok=True)
     total = None
     for chromosome, value in clean.items():  # Iterate over the reads
         value = np.array(value)  # Convert the list to a numpy array
-        depth = np.zeros((value[:, 3].astype(int).max()+len(value[0, 9]), ))
+
+        # Doing this takes for ever
+        depth = np.zeros(value[:, 3].astype(int).max()+len(value[0, 9]), dtype=np.int16)  # Create an array of zeros to store the depth
 
         results = modules["analyse"].readMapping(value, os.path.join(results_dir, chromosome), verbose=verbose)
 
