@@ -53,7 +53,7 @@ def getOptions(argv):
     Get the parsed options, supporting both short and long forms
     """
     try:
-        opts, args = getopt.getopt(argv, "hi:o:tvsa:", ["help", "input=", "output=", "trusted", "verbose", "single", 'ask-to-open'])
+        opts, args = getopt.getopt(argv, "hi:o:tva:", ["help", "input=", "output=", "trusted", "verbose", 'ask-to-open'])
     except getopt.GetoptError:
         os.system("samReader.sh -h")
         sys.exit(2)
@@ -62,7 +62,6 @@ def getOptions(argv):
     outputfile = ""
     trusted = False
     verbose = False
-    single_file = False  # New flag for a single PDF and fasta file
     ask_to_open = False  # New flag to ask if the user wants to open the PDF file
     for opt, arg in opts:
         if opt in ("-i", "--input"):
@@ -73,11 +72,9 @@ def getOptions(argv):
             trusted = True
         elif opt in ("-v", "--verbose"):
             verbose = True
-        elif opt in ("-s", "--single"):
-            single_file = True
         elif opt in ("-a", "--ask-to-open"):
             ask_to_open = True
-    return inputfile, outputfile, trusted, verbose, single_file, ask_to_open
+    return inputfile, outputfile, trusted, verbose, ask_to_open
 
 
 ## Check, Read and store the data
@@ -120,7 +117,7 @@ def main(argv):
     """
         Main function
     """
-    inputfile, outputfile, trusted, verbose, single_file, ask_to_open = getOptions(argv)
+    inputfile, outputfile, trusted, verbose, ask_to_open = getOptions(argv)
 
     # Create a folder to store the output files
     if outputfile == "": outputfile = os.path.basename(inputfile)[:-4]

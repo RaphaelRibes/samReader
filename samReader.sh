@@ -31,7 +31,7 @@ usage() {
 }
 
 # Using getopt to support both short and long options
-PARSED_OPTIONS=$(getopt -o "hi:o:tvs" -l "help,input:,output:,trusted,verbose,single" -n "$0" -- "$@")
+PARSED_OPTIONS=$(getopt -o "hi:o:tva" -l "help,input:,output:,trusted,verbose,ask-to-open" -n "$0" -- "$@")
 
 # Open the config.yaml file and get the version
 version=$(grep -oP "[0-9]+\.[0-9]+_[0-9]{4}-[0-9]{2}-[0-9]{2}" "$(dirname "$0")"/config.yaml)
@@ -63,7 +63,6 @@ input_file=""
 output_file=""
 trusted=
 verbose=
-single_file=
 ask_to_open=
 
 # Parsing options
@@ -79,8 +78,6 @@ while true; do
             trusted=true; shift;;
         -v|--verbose)
             verbose=true; shift;;
-        -s|--single-fasta)
-            single_file=true; shift;;
         -a|--ask-to-open)
             ask_to_open=true; shift;;
         --)
@@ -125,7 +122,7 @@ fi
 
 # if the file is trusted, we don't check the content
 if [ ! -z "$trusted" ]; then
-    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s} ${ask_to_open:+-a}
+    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v}${ask_to_open:+-a}
     exit 0
 fi
 
@@ -137,4 +134,4 @@ if ! grep -q "$query" "$input_file"; then
 fi
 
 # parse the parameters and start the main.py script
-python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${single_file:+-s} ${ask_to_open:+-a}
+python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${ask_to_open:+-a}
