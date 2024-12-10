@@ -4,8 +4,8 @@
 
 __author__ = "Raphaël RIBES"
 __contact__ = "raphael.ribes@etu.umontpellier.fr"
-__version__ = "0.0.1"
-__date__ = "11/11/2024"
+__version__ = "1.0.0"
+__date__ = "10/12/2024"
 __licence__ ="""This program is free software: you can redistribute it and/or modify
         it under the terms of the GNU General Public License as published by
         the Free Software Foundation, either version 3 of the License, or
@@ -46,25 +46,22 @@ import shutil
 
 from plotit import plot_depth, plot_mapping_ratio
 
-############### FUNCTIONS TO :
 ## 0/ Get options,
 def getOptions(argv):
     """
     Get the parsed options, supporting both short and long forms
     """
     try:
-        opts, args = getopt.getopt(argv, "hi:o:tva:", ["help", "input=", "output=", "trusted", "verbose", "ask-to-open"])
+        opts, args = getopt.getopt(argv, "hi:o:tva", ["help", "input=", "output=", "trusted", "verbose", "ask-to-open"])
     except getopt.GetoptError:
         os.system("samReader.sh -h")
         sys.exit(2)
-
-    print(opts, args)
 
     inputfile = ""
     outputfile = ""
     trusted = False
     verbose = False
-    ask_to_open = False  # New flag to ask if the user wants to open the PDF file
+    autoopen = False  # New flag to ask if the user wants to open the PDF file
     for opt, arg in opts:
         if opt in ("-i", "--input"):
             inputfile = arg
@@ -75,8 +72,8 @@ def getOptions(argv):
         elif opt in ("-v", "--verbose"):
             verbose = True
         elif opt in ("-a", "--ask-to-open"):
-            ask_to_open = True
-    return inputfile, outputfile, trusted, verbose, ask_to_open
+            autoopen = True
+    return inputfile, outputfile, trusted, verbose, autoopen
 
 
 ## Check, Read and store the data
@@ -88,13 +85,11 @@ def checkFormat(file, check_line, trusted=False, verbose=False, separator='-'):
         with open(file, "r") as f:
             sam_line = f.readlines()
 
-        clean = {}
-        depth = {}
-        # we're gonna check that every columns follows the right formating
+        formated = {}
+        maxpos = {}
+        # Checks that every column follows the right formating
         desc = "Checking the format of the input file and storing the data" if not trusted else "Storing the data"
         iterator = tqdm(enumerate(sam_line), desc=desc, total=len(sam_line)) if verbose else enumerate(sam_line)
-        maxpos = 0
-        maxpos_cigar = ""
 
         for n, line in iterator:
             if line.startswith('@'): continue
@@ -104,16 +99,14 @@ def checkFormat(file, check_line, trusted=False, verbose=False, separator='-'):
 
             qname = line[0].split(separator)[0]
 
-            # Those two lines allows to store the data for each reads that can be found in the sam file
-            if qname not in clean: clean[qname] = []  # Create the key if it doesn't exist
-            if qname not in depth: depth[qname] = []  # Create the key if it doesn't exist
-            clean[qname].append(line[:11])  # we reduce the size of the data to store
-            if int(line[3]) > maxpos:
-                maxpos = int(line[3])
-                maxpos_cigar = line[5]
+            # Those two lines allow storing the data for each read that can be found in the sam file
+            if qname not in formated: formated[qname] = []  # Create the key if it does not exist
+            if qname not in maxpos: maxpos[qname] = (0, )  # Create the key if it does not exist
+            formated[qname].append(line[:11])  # Reduces the size of the data to store
+            if int(line[3]) > maxpos[qname][0]:
+                maxpos[qname] = (int(line[3]), line[5])
 
-
-        return clean, (maxpos, maxpos_cigar)
+        return formated, maxpos
 
     else:
         print("The input file is not in the correct format. Please provide a .sam file.")
@@ -125,44 +118,47 @@ def main(argv):
     """
         Main function
     """
-    inputfile, outputfile, trusted, verbose, ask_to_open = getOptions(argv)
+    inputfile, outputfile, trusted, verbose, autoopen = getOptions(argv)
 
     # Create a folder to store the output files
     if outputfile == "": outputfile = os.path.basename(inputfile)[:-4]
 
     results_dir = os.path.join(os.getcwd(), f"{outputfile}_results")  # Create the results directory
 
+    local_directory = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the script
+
     os.makedirs(results_dir, exist_ok=True)  # Create the directory if it doesn't exist
 
-    config = yaml.safe_load(open(f"{os.path.dirname(os.path.abspath(__file__))}/config.yaml", "r")) # Load the version from the config file
+    config = yaml.safe_load(open(f"{local_directory}/config.yaml", "r")) # Load the version from the config file
     modules = {"analyse": None,
                "checks": None,
                "summarize": None}
 
+    # We import the right modules for the selected version of SAM
     for module in modules:
-        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SAM_specs", config['version'] , f"{module}.py")
-        spec = importlib.util.spec_from_file_location(module, file_path)
-        modules[module] = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(modules[module])
+        file_path = os.path.join(local_directory, "SAM_specs", config['version'] , f"{module}.py")  # Define the path to the module
+        spec = importlib.util.spec_from_file_location(module, file_path)  # Create the spec
+        modules[module] = importlib.util.module_from_spec(spec)  # Create the module
+        spec.loader.exec_module(modules[module])  # Execute the module
 
     # Check the format of the input file and store the data
-    clean = checkFormat(inputfile, trusted=trusted, verbose=verbose, check_line=modules['checks'].check_line, separator=config['separator'])
-
+    formated, maxpos = checkFormat(inputfile, trusted=trusted, verbose=verbose, check_line=modules['checks'].check_line, separator=config['separator'])
     os.makedirs(os.path.join(os.getcwd(), "temp"), exist_ok=True)
     total = None
-    for chromosome, value in clean.items():  # Iterate over the reads
-        value = np.array(value)  # Convert the list to a numpy array
+    for chromosome, reads in formated.items():  # Iterate over the reads
+        reads = np.array(reads)  # Convert the list to a numpy array
 
-        # Doing this takes for ever
-        depth = np.zeros(value[:, 3].astype(int).max()+len(value[0, 9]), dtype=np.int16)  # Create an array of zeros to store the depth
+        length = maxpos[chromosome][0] + len(modules['analyse'].readCigar(maxpos[chromosome][1])[1])
+        depth = np.zeros(length, dtype=np.int16)  # Create an array of zeros to store the depth
 
-        results = modules["analyse"].readMapping(value, os.path.join(results_dir, chromosome), verbose=verbose)
+        results = modules["analyse"].readMapping(reads, os.path.join(results_dir, chromosome), verbose=verbose)
 
-        recap, depth = modules["analyse"].globalPercentCigar(value, depth, verbose=verbose)
+        cigar, depth = modules["analyse"].globalPercentCigar(reads, depth, verbose=verbose)
 
         plot_depth(depth, bins=config['bins'])
-        for key1, value1 in recap.items():
-            results[key1] = value1
+
+        for mutation, total_value in cigar.items():
+            results[mutation] = total_value
 
         modules["summarize"].summarize(chromosome, results, results_dir, verbose=verbose)
 
@@ -170,11 +166,14 @@ def main(argv):
         else: total = {chromosome: total[chromosome] + results[chromosome] for chromosome in total}
 
     plot_mapping_ratio(results_dir)
-    total['chromosomes'] = clean.keys()
+    total['chromosomes'] = formated.keys()
     modules["summarize"].summarize(outputfile, total, results_dir, verbose=verbose, genome=True)
 
     # remove the temp directory
     shutil.rmtree(os.path.join(os.getcwd(), "temp"))
+
+    if autoopen:
+        os.system(f"xdg-open \"{os.path.join(results_dir, outputfile)}.pdf\"")
 
 ############### LAUNCH THE SCRIPT ###############
 
