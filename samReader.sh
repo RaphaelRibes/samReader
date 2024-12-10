@@ -25,7 +25,7 @@ usage() {
   echo "  -o, --output <directory>  (optional) Specifies the output directory (by default the current directory)"
   echo "  -t, --trusted             (optional) Skips checking the content of the input file"
   echo "  -v, --verbose             (optional) Shows details of each step"
-  echo "  -a, --ask-to-open         (optional) Asks to open the output file"
+  echo "  -a, --auto-open           (optional) Open the output file at the end of the analysis"
   exit
 }
 
@@ -62,7 +62,7 @@ input_file=""
 output_file=""
 trusted=
 verbose=
-ask_to_open=
+auto_open=
 
 # Parsing options
 while true; do
@@ -78,7 +78,7 @@ while true; do
         -v|--verbose)
             verbose=true; shift;;
         -a|--ask-to-open)
-            ask_to_open=true; shift;;
+            auto_open=true; shift;;
         --)
             shift; break;;
         *)
@@ -121,7 +121,7 @@ fi
 
 # if the file is trusted, we don't check the content
 if [ ! -z "$trusted" ]; then
-    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${ask_to_open:+-a}
+    python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${auto_open:+-a}
     exit 0
 fi
 
@@ -133,4 +133,4 @@ if ! grep -q "$query" "$input_file"; then
 fi
 
 # parse the parameters and start the main.py script
-python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${ask_to_open:+-a}
+python3 "$(dirname "$0")"/main.py -i "$input_file" -o "$output_file" ${trusted:+-t} ${verbose:+-v} ${auto_open:+-a}

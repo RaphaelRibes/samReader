@@ -7,8 +7,11 @@
 
 ## Features
 
-- **Partially Mapped and Unmapped Reads Analysis**: Identifies and reports reads that are partially mapped or unmapped.
 - **Summary Reports**: Generates comprehensive summaries of the analyses in both text and LaTeX formats.
+- **Detailed CIGAR Analysis**: Provides detailed information about the CIGAR strings of the reads.
+- **Chromosome-Specific Analysis**: Generates separate directories for each chromosome, containing mapped, partially mapped, and unmapped reads.
+- **FASTA Output**: Outputs the sequences of mapped, partially mapped, and unmapped reads in FASTA format.
+- **Depth Analysis**: Calculates the depth of coverage for each chromosome.
 
 ## Requirements
 
@@ -32,10 +35,10 @@
 3. **Install Venv**:
 
    ```bash
-   python3 -m venv .venv
+   python3.13 -m venv .venv
    ```
 
-4. **Activate Venv**:
+4. **Activate Venv** (on linux):
 
    ```bash
    source .venv/bin/activate
@@ -61,19 +64,19 @@ bash samReader.sh -i /path/to/your/mapping.sam
 - `-o` or `--output`:      (Optional) Specify the output directory. If not provided, the output will be saved in the current directory. Doesn't work right now.
 - `-t` or `--trusted`:     (Optional) Trust the input format without performing format checks.
 - `-v` or `--verbose`:     (Optional) Enable verbose mode.
-- `-a` or `--ask-to-open`: (Optional) Ask to open the summary report after the analysis.
+- `-a` or `--auto-open`:   (Optional) Open the summary report after the analysis.
 - `-h` or `--help`:         Display the help message.
 - 
 ## Output
 
 The tool generates the following outputs:
 
-- **Mapped Reads**¹: A FASTA file (`only_mapped.fasta`) containing sequences of mapped reads.
-- **Partially Mapped Reads**¹: A FASTA file (`only_partially_mapped.fasta`) containing sequences of partially mapped reads.
-- **Unmapped Reads**¹: A FASTA file (`only_unmapped.fasta`) containing sequences of unmapped reads.
 - **Summary Report**: A text file (`summary.pdf`) containing a summary of the analyses.
 
-[1] : *If you have enabled single fasta file mode, you will only have one fasta file like `mapping.fasta`*
+- One directory for each chromosome containing the following files:
+  - **Mapped Reads**: A FASTA file (`only_mapped.fasta`) containing sequences of mapped reads.
+  - **Partially Mapped Reads**: A FASTA file (`only_partially_mapped.fasta`) containing sequences of partially mapped reads.
+  - **Unmapped Reads**: A FASTA file (`only_unmapped.fasta`) containing sequences of unmapped reads.
 
 
 ## Contributing
