@@ -80,11 +80,11 @@ def readMapping(payload, path, verbose=True):
                 file_handlers["partially_mapped"].write(toFasta(line))  # Write to the partially mapped file
 
         # Check if all reads in the pair are mapped
-        if all(m == "m" for m in pair_mapping):
+        if pair_mapping == ["m", "m"]:
             results["p_mapped"] += 1  # Increment the count of pairs where both reads are mapped
 
         # Check if all reads in the pair are unmapped
-        elif all(m == "u" for m in pair_mapping):
+        elif pair_mapping == ["u", "u"]:
             results["p_unmapped"] += 1  # Increment the count of pairs where both reads are unmapped
 
         # Default case: mark the pair as partially mapped
@@ -143,7 +143,7 @@ def readCigar(cigar):
     # Convert the depth list to a numpy array
     return dico, np.array(depth)
 
-### Analyse the CIGAR = regular expression that summarise each read alignment ###
+### Analyze the CIGAR = regular expression that summarise each read alignment ###
 def percentMutation(dico) -> list:
     """
     Calculate the percentage of each mutation type based on the provided dictionary.
