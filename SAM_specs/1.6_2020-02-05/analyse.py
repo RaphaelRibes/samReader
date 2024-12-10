@@ -14,19 +14,21 @@ SPECS = yaml.safe_load(open(f"{two_levels_up}/SAM_specs/{version['version']}/spe
 
 #### Create a fasta header ####
 def toFasta(line):
-    """
-    Create a FASTA formatted head from a read line and its mapping situation.
-
-    Args:
-        line (dict): A dictionary containing read information with keys 'qname', 'mapq', 'pos', and 'seq'.
-
-    Returns:
-        str: A string header in FASTA format.
-    """
     return f">{line[0]} MAPQ:{line[0]} POS:{line[3]}\n{line[9]}\n"
 
 #### Analyze the partially mapped or unmapped reads ####
 def readMapping(payload, path, verbose=True):
+    """
+    Analyze the partially mapped or unmapped reads from the payload and write them to separate FASTA files.
+
+    Args:
+        payload (list): A list of read information.
+        path (str): The directory path where the output FASTA files will be saved.
+        verbose (bool): If True, display a progress bar.
+
+    Returns:
+        dict: A dictionary with counts of single and paired reads in different mapping categories.
+    """
     # Determine file handlers dynamically
     os.makedirs(path, exist_ok=True)
     file_handlers = {
@@ -90,79 +92,122 @@ def readMapping(payload, path, verbose=True):
 
     return results
 
-
-
-### Analyse the CIGAR = regular expression that summarise each read alignment ###
 def readCigar(cigar):
-    if cigar == "*": return {}, np.array([])
+    """
+    Parse a CIGAR string and calculate the depth of the read.
+
+    Args:
+        cigar (str): A CIGAR string representing the alignment of the read.
+
+    Returns:
+        tuple: A dictionary with the count of each CIGAR operation and a numpy array representing the depth of the read.
+    """
+    if cigar == "*":  # If the read is unmapped
+        return {}, np.array([])
 
     dico = {}
     num = 0
     depth = []
 
-    # we can skip using REGEX here because we verified the format of the CIGAR string
-    # it's only faster by 8% and it took me all morning to find a new way ffs
+    # Parsing the CIGAR string
     for char in cigar:
         if char.isdigit():
-            # Build the number if the character is a digit
+            # Build a number if the character is a digit
             num = num * 10 + int(char)
         else:
-            # Add the operation to the dictionary
+            # Update the dictionary to count each operation
             dico[char] = dico.get(char, 0) + num
-            if char == "M":
-                depth += [1] * num
-            elif char == "D":
+
+            # Handle different operations
+            if char in "M=X":  # Alignment (match or mismatch)
+                depth += [1] * num  # Add to depth
+            elif char in "DN":  # Deletion or skipped region
+                depth += [0] * num  # Add zeros for bases missing in the query
+            elif char in "I":  # Insertion
+                # Insertion only consumes the query, so it's ignored here
                 pass
-            else:
-                depth += [0] * num
+            elif char in "S":  # Soft clipping
+                # Ignore soft clipping (bases present but not aligned)
+                pass
+            elif char in "H":  # Hard clipping
+                # Ignore hard clipping (bases completely excluded)
+                pass
+            elif char in "P":  # Padding
+                # Ignore padding (silent deletion)
+                pass
+
+            # Reset the counter for the next operator
             num = 0
 
+    # Convert the depth list to a numpy array
     return dico, np.array(depth)
 
 ### Analyse the CIGAR = regular expression that summarise each read alignment ###
 def percentMutation(dico) -> list:
+    """
+    Calculate the percentage of each mutation type based on the provided dictionary.
+
+    Args:
+        dico (dict): A dictionary where keys are mutation types and values are their counts.
+
+    Returns:
+        list: A list of percentages for each mutation type defined in SPECS['CIGAR_operations'].
+              If the total count of mutations is zero, returns a list of zeros.
+    """
     total_value = sum(dico.values())
     if total_value == 0:
         return [0.0] * len(SPECS['CIGAR_operations'])
+
     mut_list = SPECS['CIGAR_operations']
-    res = []
-    for mut in mut_list:  # Calculated percent of mutation if mut present in the dictionnary, else, percent of mut = 0
-        res.append((dico.get(mut, 0.0) * 100) / total_value)
-    return res
+    result = []
+    for mut in mut_list:
+        # Calculate the percentage of mutation if present in the dictionary, else percentage is 0
+        result.append((dico.get(mut, 0.0) * 100) / total_value)
+
+    return result
 
 
-def globalPercentCigar(payload:list[list], depth, verbose=False):
+def globalPercentCigar(payload: list[list], depth, verbose=False):
     """
-        Analyze the CIGAR strings and return a DataFrame with the percentage of each mutation type.
+    Analyze the CIGAR strings from the payload and calculate the global percentage of each mutation type.
 
-        Args:
-            payload (list): A list of dictionaries containing read information.
-            path (str): The path to the directory (not used in this version).
+    Args:
+        payload (list[list]): A list of lists, where each inner list contains read information.
+        depth (numpy.ndarray): A numpy array representing the depth of the reads.
+        verbose (bool): If True, display a progress bar.
 
-        Returns:
-            pd.DataFrame: A DataFrame with the percentage of each mutation type.
-            :param depth: A list of integers containing the depth of each position.
-            :param payload: A list of dictionaries containing read information.
-            :param verbose: A boolean to display the progress bar
-        """
+    Returns:
+        tuple: A dictionary with the sum of each mutation type and the updated depth array.
+    """
     data = []
 
+    # Create an iterator with a progress bar if verbose is True
     iterator = tqdm(enumerate(payload), desc="Analyzing CIGAR strings", total=len(payload)) if verbose else enumerate(payload)
 
     for n, line in iterator:
+        # Parse the CIGAR string and get the depth of the read
         dico, line_depth = readCigar(line[5])
+        # Calculate the percentage of each mutation type
         percent_mut = percentMutation(dico)
 
-        if sum(percent_mut) == 0:
-            pass
-        else:
+        if sum(percent_mut) != 0:
             data.append(percent_mut)
 
             pos = int(line[3])
-            depth[pos:pos + len(line_depth)] += line_depth
 
+            if line[8] == 0:  # If there is nothing to map
+                continue
+
+            if line[8] < 0:  # If the read is reversed
+                line_depth = line_depth[::-1]  # Reverse the depth list
+
+            # Add the depth of the read to the global depth
+            depth[pos:pos+len(line_depth)] += line_depth
+
+    # Convert the data list to a numpy array
     data = np.array(data)
 
+    # Create a dictionary to store the sum of each mutation type
     columns_dict = {}
     for n, mut in enumerate(SPECS['CIGAR_operations']):
         columns_dict[mut] = data[:, n].sum()
