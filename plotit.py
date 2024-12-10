@@ -38,12 +38,17 @@ def plot_depth(depth, bins=100):
     plt.ylabel("Depth")
     plt.xlabel("Position")
 
+    # Change the labels of the ticks
+    plt.xticks(ticks, [format_size(tick_label) for tick_label in tick_labels], rotation=45)
+
     # plt.ylim(0)
     plt.xlim(0, bins+1)
 
     # remove top and right spines
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
+
+    plt.tight_layout()
 
     plt.savefig("temp/chromosome.png", dpi=300)
     plt.close()
@@ -71,6 +76,22 @@ def plot_mapping_ratio(results_dir: str):
 
     plt.savefig("temp/mapping_ratio.png", dpi=300)
     plt.close()
+
+def format_size(size: int) -> str:
+    """
+    Format the size of the file in a human-readable format.
+
+    Args:
+        size (int): The size of the file in bytes.
+
+    Returns:
+        str: The size of the file in a human-readable format.
+    """
+    for unit in ['bp', 'Kbp', 'Mbp', 'Gbp', 'Tbp']:
+        if size <= 1000:
+            return f"{size:.2f} {unit}"
+        size /= 1000
+
 
 if __name__ == "__main__":
     os.makedirs(os.path.join(os.getcwd(), "temp"), exist_ok=True)
