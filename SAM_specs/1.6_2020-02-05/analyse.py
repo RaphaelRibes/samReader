@@ -52,9 +52,10 @@ def readMapping(payload, path, verbose=True):
         for line in lines:
             # Compute the binary representation of the flag with a length of 16 bits
             flag = toBinary(line[1], 16)
+            cigar_mutations, _ = readCigar(line[5])
 
             # Check if the read is partially mapped
-            if int(flag[-2]) == 1 and line[5] != f"{len(line[9])}M":
+            if int(flag[-2]) == 1 and list(cigar_mutations.keys()) != ["M"]:
                 results["s_partially_mapped"] += 1  # Increment the count of partially mapped reads
                 # Mark the read as partially mapped
                 pair_mapping.append("p")
@@ -194,11 +195,12 @@ def globalPercentCigar(payload: list[list], depth, verbose=False):
             data.append(percent_mut)
 
             pos = int(line[3])
+            tlen = int(line[8])
 
-            if line[8] == 0:  # If there is nothing to map
+            if tlen == 0:  # If there is nothing to map
                 continue
 
-            if line[8] < 0:  # If the read is reversed
+            if tlen < 0:  # If the read is reversed
                 line_depth = line_depth[::-1]  # Reverse the depth list
 
             # Add the depth of the read to the global depth
