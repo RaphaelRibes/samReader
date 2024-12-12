@@ -1,6 +1,19 @@
 version: 1.6_2020-02-05  # Has to be in SAM_specs repo
-significant figures: 2  # Number of significant figures to keep for the CIGAR mutation counts
+
+# General
 separator: '-'  # Separator used in qname
 # For exemple Clone1-95056 the separator is '-' -> Clone1 is the chromosome
 #             20_62014963_62015458_2:0:0_4:0:0_1a0 the separator is '_' -> 20 is the chromosome
+
+# Precision
+mapq threshold: 0 # Threshold for the mapping quality
+significant figures: 2  # Number of significant figures to keep for the CIGAR mutation counts
+
+# Analyses
 bins: 100  # Number of bins for the coverage plot
+calculation method: # Method to calculate the coverage
+  depth: 'mean'  # for depth
+  mapq: 'mean'  # for mapping quality
+# 'mean' or 'median'
+n ticks: 15  # The Number of ticks for the coverage plot
+# The higher the number of ticks, the more precise the graduation will be on the x-axis
