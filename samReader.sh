@@ -12,7 +12,7 @@ usage() {
   echo " (__  ) / /_/ /  / / / / / / / _, _/ /  __// /_/ / / /_/ /  /  __/ / /    "
   echo "/____/  \____/  /_/ /_/ /_/ /_/ |_|  \___/ \____/  \____/   \___/ /_/     "
   echo
-  echo "Usage: $0 -i|--input input_file <input.sam> [-o|--output <output_directory>] [-t|--trusted] [-v|--verbose][-h|--help]"
+  echo "Usage: $0 -i|--input input_file <input.sam> [-o|--output <output_directory>] [-t|--trusted] [-v|--verbose] [-a|--auto-open] [-h|--help]"
   # if version is "UNDEFINED PLEASE CONFIGURE IT IN config.yaml"
   if [ "$version" = "UNDEFINED PLEASE CONFIGURE IT IN config.yaml" ]; then
       echo -e "${RED}SAM Version: $version"
