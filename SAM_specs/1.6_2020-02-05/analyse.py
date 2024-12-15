@@ -51,7 +51,7 @@ def readMapping(payload, path, verbose=True):
         pair_mapping = []
         for line in lines:
             # Compute the binary representation of the flag with a length of 16 bits
-            flag = toBinary(line[1], 16)
+            flag = line[1]
             cigar_mutations, _ = readCigar(line[5])
 
             # Check if the read is partially mapped
@@ -120,23 +120,12 @@ def readCigar(cigar):
             dico[char] = dico.get(char, 0) + num
 
             # Handle different operations
-            if char in "M=X":  # Alignment (match or mismatch)
+            if char in "M=":  # Alignment match
                 depth += [1] * num  # Add to depth
-            elif char in "DN":  # Deletion or skipped region
+            elif char in "DNX":  # Deletion, skipped region, or mismatch
                 depth += [0] * num  # Add zeros for bases missing in the query
-            elif char in "I":  # Insertion
-                # Insertion only consumes the query, so it's ignored here
+            elif char in "ISHP":  # Insertion, soft clipping, hard clipping, padding
                 pass
-            elif char in "S":  # Soft clipping
-                # Ignore soft clipping (bases present but not aligned)
-                pass
-            elif char in "H":  # Hard clipping
-                # Ignore hard clipping (bases completely excluded)
-                pass
-            elif char in "P":  # Padding
-                # Ignore padding (silent deletion)
-                pass
-
             # Reset the counter for the next operator
             num = 0
 
@@ -188,6 +177,9 @@ def globalPercentCigar(payload: list[list], depth, mapq, verbose=False):
 
     for n, line in iterator:
         # Parse the CIGAR string and get the depth of the read
+        if line[5] == "*":  # Skip the read if it is unmapped
+            continue
+
         dico, line_depth = readCigar(line[5])
 
         # Calculate the percentage of each mutation type
@@ -195,12 +187,9 @@ def globalPercentCigar(payload: list[list], depth, mapq, verbose=False):
 
         line_mapq = int(line[4])
         pos = int(line[3])
-        tlen = int(line[8])
+        flag = line[1]
 
-        if tlen == 0:  # Unmapped read
-            continue
-
-        if tlen < 0:  # Reverse read
+        if flag[-5] == "1":  # Reverse the depth array if the read is reverse
             line_depth = line_depth[::-1]  # Reverse the depth array
             start = pos - len(line_depth)
             end = pos
@@ -210,7 +199,8 @@ def globalPercentCigar(payload: list[list], depth, mapq, verbose=False):
 
         data.append(percent_mut)
         depth[start:end] += line_depth
-        mapq[start:end] = line_mapq
+        mapq[start:end] = line_mapq  # Here is another limitation of the current implementation
+        # It should do the mean of the MAPQ scores for each position, but it's not implemented yet
 
     # Convert the data list to a numpy array
     data = np.array(data)
