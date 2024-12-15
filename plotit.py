@@ -5,6 +5,7 @@ import os, shutil
 def interpolate(arr: np.array):
     """
     Interpolate missing values (empty array) in an array.
+    If the array is already complete, return the original array.
 
     Args:
         arr (np.array): Input array with potential NaN values.
@@ -43,6 +44,7 @@ def plot_depth_mapq(depth: np.array,
     classed_depth = [depth[ls_depth[i]:ls_depth[i + 1]] for i in range(bins)]  # Divide the depth into classes
     classed_mapq = [mapq[ls_mapq[i]:ls_mapq[i + 1]] for i in range(bins)]
 
+    # I know this is not pretty, but at least it's clear what's happening
     if depth_median:
         x_sampled_depth, interpolated_sampled_depth = interpolate(np.array([np.median(cd) if len(cd) > 0 else np.nan for cd in classed_depth]))
         _, depth_lower_limit = interpolate(np.array([np.percentile(cd, 25) if len(cd) > 0 else np.nan  for cd in classed_depth]))
@@ -60,12 +62,18 @@ def plot_depth_mapq(depth: np.array,
         x_sampled_mapq, interpolated_sampled_mapq = interpolate([np.mean(cm) if len(cm) > 0 else np.nan for cm in classed_mapq])
         mapq_lower_limit = np.array([interpolated_sampled_mapq[n]-np.std(cm) if len(cm) > 0 else np.nan for n, cm in enumerate(classed_mapq)])
         mapq_upper_limit = np.array([interpolated_sampled_mapq[n]+np.std(cm) if len(cm) > 0 else np.nan for n, cm in enumerate(classed_mapq)])
+    # The interpolation doesn't happen all the time, only when some values are missing
+    # It's the limitation of this graph, it cannot be precise base-per-base without being confusing and so it has to be interpolated
+
+    # Plot the depth and mapq
+    fig, ax1 = plt.subplots(figsize=(10, 5))
+    ax2 = ax1.twinx()  # Share the same x-axis
 
     # Plot the depth
-    fig, ax1 = plt.subplots(figsize=(10, 5))
     ax1.plot(x_sampled_depth, interpolated_sampled_depth, label='Mean depth', color='tab:blue')
     ax1.fill_between(x_sampled_depth, depth_lower_limit, depth_upper_limit, alpha=0.3, label='Interquartile range', color='tab:blue')
 
+    # Set the labels and limits
     ax1.set_xlim(0, bins-1)
     ax1.set_ylim(0)
     ax1.set_ylabel("Depth", color='tab:blue')
@@ -74,12 +82,12 @@ def plot_depth_mapq(depth: np.array,
     ax1.tick_params(colors='tab:blue', axis='y')
 
     # Plot the mapq
-    ax2 = ax1.twinx()  # Share the same x-axis
     ax2.plot(x_sampled_mapq, interpolated_sampled_mapq, color='tab:orange', label='MAPQ')
     ax2.fill_between(x_sampled_mapq, mapq_lower_limit, mapq_upper_limit, alpha=0.3, color='tab:orange')
     ax2.set_ylabel('MAPQ', color='tab:orange')
     ax2.spines['right'].set_color('tab:orange')
 
+    # Set the labels and limits
     ax2.set_xlim(0, bins-1)
     ax2.set_ylim(0)
     ax2.tick_params(colors='tab:orange', axis='y')
@@ -91,7 +99,7 @@ def plot_depth_mapq(depth: np.array,
     ax1.set_xticks(ticks)
     ax1.set_xticklabels([format_size(tick_label) for tick_label in tick_labels], rotation=45)
 
-    # Draw the mean depth
+    # Draw the mean/median depth
     if depth_median:
         ax1.axhline(np.median(depth), color='tab:blue', linestyle='--', label=f'Median depth')
     else:
@@ -113,7 +121,7 @@ def plot_depth_mapq(depth: np.array,
     ax1.spines['right'].set_visible(False)
     ax2.spines['left'].set_visible(False)
 
-    plt.tight_layout()
+    plt.tight_layout()  # Adjust the layout
 
     plt.savefig("temp/chromosome.png", dpi=300)
     plt.close()
