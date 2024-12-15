@@ -7,10 +7,9 @@
 
 ## Features
 
-- **Summary Reports**: Generates comprehensive summaries of the analyses in both text and LaTeX formats.
+- **Summary Reports**: Generates comprehensive summaries of the analyses in text under pdf format.
 - **Detailed CIGAR Analysis**: Provides detailed information about the CIGAR strings of the reads.
 - **Chromosome-Specific Analysis**: Generates separate directories for each chromosome, containing mapped, partially mapped, and unmapped reads.
-- **FASTA Output**: Outputs the sequences of mapped, partially mapped, and unmapped reads in FASTA format.
 - **Depth Analysis**: Calculates the depth of coverage for each chromosome.
 - **Evolution of the mapping quality**: Displays the evolution of the mapping quality over the length of the chromosome.
 - **Highly Customizable**: Offers a wide range of options to customize the analysis (see how to use config.yaml).
