@@ -4,7 +4,7 @@
 
 __author__ = "Raphaël RIBES"
 __contact__ = "raphael.ribes@etu.umontpellier.fr"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __date__ = "10/12/2024"
 __licence__ ="""This program is free software: you can redistribute it and/or modify
         it under the terms of the GNU General Public License as published by
