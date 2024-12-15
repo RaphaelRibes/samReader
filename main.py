@@ -44,7 +44,7 @@ from tqdm.auto import tqdm
 import numpy as np
 import shutil
 
-from plotit import plot_depth, plot_mapping_ratio
+from plotit import plot_depth_mapq, plot_mapping_ratio
 
 ## 0/ Get options,
 def getOptions(argv):
@@ -77,7 +77,7 @@ def getOptions(argv):
 
 
 ## Check, Read and store the data
-def checkFormat(file, check_line, trusted=False, verbose=False, separator='-'):
+def checkFormat(file, check_line, trusted=False, verbose=False, separator='-', maq_threshold=0):
     """
         Check the format of the input file
     """
@@ -87,6 +87,7 @@ def checkFormat(file, check_line, trusted=False, verbose=False, separator='-'):
 
         formated = {}
         maxpos = {}
+        total_lines = {}
         # Checks that every column follows the right formating
         desc = "Checking the format of the input file and storing the data" if not trusted else "Storing the data"
         iterator = tqdm(enumerate(sam_line), desc=desc, total=len(sam_line)) if verbose else enumerate(sam_line)
@@ -94,19 +95,22 @@ def checkFormat(file, check_line, trusted=False, verbose=False, separator='-'):
         for n, line in iterator:
             if line.startswith('@'): continue
             line = line.split('\t')
+            qname = line[0].split(separator)[0]
+
+            if qname not in total_lines: total_lines[qname] = 0  # Create the key if it does not exist
+            total_lines[qname] += 1
 
             check_line(line, trusted=trusted)
 
-            qname = line[0].split(separator)[0]
+            if int(line[4]) >= maq_threshold:
+                # Those two lines allow storing the data for each read that can be found in the sam file
+                if qname not in formated: formated[qname] = []  # Create the key if it does not exist
+                if qname not in maxpos: maxpos[qname] = (0, )  # Create the key if it does not exist
+                formated[qname].append(line[:11])  # Reduces the size of the data to store
+                if int(line[3]) > maxpos[qname][0]:
+                    maxpos[qname] = (int(line[3]), line[5])
 
-            # Those two lines allow storing the data for each read that can be found in the sam file
-            if qname not in formated: formated[qname] = []  # Create the key if it does not exist
-            if qname not in maxpos: maxpos[qname] = (0, )  # Create the key if it does not exist
-            formated[qname].append(line[:11])  # Reduces the size of the data to store
-            if int(line[3]) > maxpos[qname][0]:
-                maxpos[qname] = (int(line[3]), line[5])
-
-        return formated, maxpos
+        return formated, maxpos, total_lines
 
     else:
         print("The input file is not in the correct format. Please provide a .sam file.")
@@ -142,23 +146,33 @@ def main(argv):
         spec.loader.exec_module(modules[module])  # Execute the module
 
     # Check the format of the input file and store the data
-    formated, maxpos = checkFormat(inputfile, trusted=trusted, verbose=verbose, check_line=modules['checks'].check_line, separator=config['separator'])
+    formated, maxpos, total_lines = checkFormat(inputfile, trusted=trusted, verbose=verbose,
+                                                check_line=modules['checks'].check_line,
+                                                separator=config['separator'],
+                                                maq_threshold=config['mapq threshold'])
+
     os.makedirs(os.path.join(os.getcwd(), "temp"), exist_ok=True)
     total = None
     for chromosome, reads in formated.items():  # Iterate over the reads
         reads = np.array(reads)  # Convert the list to a numpy array
 
         length = maxpos[chromosome][0] + len(modules['analyse'].readCigar(maxpos[chromosome][1])[1])
+        mapq = np.zeros(length, dtype=np.int16)  # Create an array of zeros to store the mapq
         depth = np.zeros(length, dtype=np.int16)  # Create an array of zeros to store the depth
 
         results = modules["analyse"].readMapping(reads, os.path.join(results_dir, chromosome), verbose=verbose)
 
-        cigar, depth = modules["analyse"].globalPercentCigar(reads, depth, verbose=verbose)
+        cigar, depth, mapq = modules["analyse"].globalPercentCigar(reads, depth, mapq, verbose=verbose)
 
-        plot_depth(depth, bins=config['bins'])
+        plot_depth_mapq(depth, mapq, bins=config['bins'],
+                        depth_median=config['calculation method']['depth'] == "median",
+                        mapq_median=config['calculation method']['mapq'] == "median",
+                        n_ticks=config['n ticks'])
 
         for mutation, total_value in cigar.items():
             results[mutation] = total_value
+        results['total'] = total_lines[chromosome]
+        results['qual'] = config['mapq threshold']
 
         modules["summarize"].summarize(chromosome, results, results_dir, verbose=verbose)
 

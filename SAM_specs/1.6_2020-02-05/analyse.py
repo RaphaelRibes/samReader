@@ -168,7 +168,7 @@ def percentMutation(dico) -> list:
     return result
 
 
-def globalPercentCigar(payload: list[list], depth, verbose=False):
+def globalPercentCigar(payload: list[list], depth, mapq, verbose=False):
     """
     Analyze the CIGAR strings from the payload and calculate the global percentage of each mutation type.
 
@@ -180,7 +180,8 @@ def globalPercentCigar(payload: list[list], depth, verbose=False):
     Returns:
         tuple: A dictionary with the sum of each mutation type and the updated depth array.
     """
-    data = []
+    data = [[0] * len(SPECS['CIGAR_operations'])]  # Initialize the data list
+    # We have to put a first line of zeros to avoid an empty array
 
     # Create an iterator with a progress bar if verbose is True
     iterator = tqdm(enumerate(payload), desc="Analyzing CIGAR strings", total=len(payload)) if verbose else enumerate(payload)
@@ -188,23 +189,28 @@ def globalPercentCigar(payload: list[list], depth, verbose=False):
     for n, line in iterator:
         # Parse the CIGAR string and get the depth of the read
         dico, line_depth = readCigar(line[5])
+
         # Calculate the percentage of each mutation type
         percent_mut = percentMutation(dico)
 
-        if sum(percent_mut) != 0:
-            data.append(percent_mut)
+        line_mapq = int(line[4])
+        pos = int(line[3])
+        tlen = int(line[8])
 
-            pos = int(line[3])
-            tlen = int(line[8])
+        if tlen == 0:  # Unmapped read
+            continue
 
-            if tlen == 0:  # If there is nothing to map
-                continue
+        if tlen < 0:  # Reverse read
+            line_depth = line_depth[::-1]  # Reverse the depth array
+            start = pos - len(line_depth)
+            end = pos
+        else:
+            start = pos
+            end = pos + len(line_depth)
 
-            if tlen < 0:  # If the read is reversed
-                line_depth = line_depth[::-1]  # Reverse the depth list
-
-            # Add the depth of the read to the global depth
-            depth[pos:pos+len(line_depth)] += line_depth
+        data.append(percent_mut)
+        depth[start:end] += line_depth
+        mapq[start:end] = line_mapq
 
     # Convert the data list to a numpy array
     data = np.array(data)
@@ -213,8 +219,9 @@ def globalPercentCigar(payload: list[list], depth, verbose=False):
     columns_dict = {}
     for n, mut in enumerate(SPECS['CIGAR_operations']):
         columns_dict[mut] = data[:, n].sum()
+        if columns_dict[mut] is np.nan: columns_dict[mut] = 0.
 
-    return columns_dict, depth
+    return columns_dict, depth, mapq
 
 
 def main():

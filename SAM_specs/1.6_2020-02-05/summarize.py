@@ -30,6 +30,7 @@ def format_metric(value, nb_reads):
     Returns:
         str: The formatted percentage string.
     """
+    nb_reads = max(nb_reads, 1)  # Avoid division by zero
     mid = f"{(value / nb_reads) * 100:.{config['significant figures']}f}"
     return mid + "\\%"
 
@@ -57,8 +58,11 @@ def make_chromosome(file_name, results, path):
         "p_unmapped": results["p_unmapped"],
         "s_mapped": results["s_mapped"],
         "p_mapped": results["p_mapped"],
-        "s_total": results["s_mapped"] + results["s_partially_mapped"] + results["s_unmapped"],
-        "p_total": results["p_mapped"] + results["p_partially_mapped"] + results["p_unmapped"]
+        "s_total": results["total"],
+        "p_total": results["total"]//2,
+        "qual": results["qual"],
+        "p_low_qual": results["total"]//2 - results["p_mapped"] - results["p_partially_mapped"] - results["p_unmapped"],
+        "s_low_qual": results["total"] - results["s_mapped"] - results["s_partially_mapped"] - results["s_unmapped"],
     }
 
     latex_content = latex_content.format(**data_dict)
