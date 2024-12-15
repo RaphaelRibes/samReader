@@ -12,11 +12,26 @@
 - **Chromosome-Specific Analysis**: Generates separate directories for each chromosome, containing mapped, partially mapped, and unmapped reads.
 - **FASTA Output**: Outputs the sequences of mapped, partially mapped, and unmapped reads in FASTA format.
 - **Depth Analysis**: Calculates the depth of coverage for each chromosome.
+- **Evolution of the mapping quality**: Displays the evolution of the mapping quality over the length of the chromosome.
+- **Highly Customizable**: Offers a wide range of options to customize the analysis (see how to use config.yaml).
 
 ## Requirements
 
 - Python 3.13 or higher
+    ```bash
+    sudo apt-get install python3.13-full
+    ```
+- Texlive-full using
+    ```bash
+    sudo apt-get install texlive-full
+    ```
 - Required Python packages described in requirements.txt
+
+### Optional
+I use xdg open to open the pdf file. If you want to use the `--auto-open` option, you need to install xdg-utils.
+```bash
+sudo apt-get install xdg-utils
+```
 
 ## Installation
 
@@ -32,13 +47,13 @@
    cd samReader
    ```
 
-3. **Install Venv**:
+3. **Install the Virtual Environment (venv)**:
 
    ```bash
    python3.13 -m venv .venv
    ```
 
-4. **Activate Venv** (on linux):
+4. **Activate the venv**:
 
    ```bash
    source .venv/bin/activate
@@ -58,6 +73,20 @@ The minimal command to run `samReader` is described like this:
 bash samReader.sh -i /path/to/your/mapping.sam
 ```
 
+### How to use config.yaml
+
+The config.yaml file is used to customize the analysis. You can change the following parameters:
+- **version** (default `1.6_2020-02-05`): The version of the SAM file format. You can see every available version typing `bash samReader.sh -h`.
+- **separator** (default `-`): The separator used in the SAM file to dinstinguish the chromosome name from the read number. 
+For exemple, in `Clone1-153694`, the separator is `-`.
+**Make sure to use the same separator for each chromosome of your `.sam` file**
+- **mapq threshold** (default `0`): The minimum mapping quality to consider a read as mapped.
+- **significant figures** (default `2`): The number of significant figures to display in the summary report.
+- **bins** (default `100`): The number of bins to use for the mapping quality histogram. The higher the number, the more precise the histogram.
+- **calculation method** (default for depth `median` and for mapq `mean`): The method used to calculate the depth of coverage and mapping quality. You can choose between `mean` and `median`.
+- **n ticks** (default `10`): The number of ticks to display on the x-axis of the mapping quality evolution plot. The higher the number, the more precise the graduation on the x-axis will be.
+
+**The program should work with the default parameters. If you change the parameters, their is no guarantee that the program will work so make sure to use corresponding parameters for your `.sam` file.**
 ### Options
 
 - `-i` or `--input`:        Path to the input SAM file.
