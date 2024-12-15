@@ -45,6 +45,7 @@ import numpy as np
 import shutil
 
 from plotit import plot_depth_mapq, plot_mapping_ratio
+from common_functions import toBinary
 
 ## 0/ Get options,
 def getOptions(argv):
@@ -96,6 +97,7 @@ def checkFormat(file, check_line, trusted=False, verbose=False, separator='-', m
             if line.startswith('@'): continue
             line = line.split('\t')
             qname = line[0].split(separator)[0]
+            line[1] = toBinary(line[1], 16)
 
             if qname not in total_lines: total_lines[qname] = 0  # Create the key if it does not exist
             total_lines[qname] += 1
@@ -107,7 +109,7 @@ def checkFormat(file, check_line, trusted=False, verbose=False, separator='-', m
                 if qname not in formated: formated[qname] = []  # Create the key if it does not exist
                 if qname not in maxpos: maxpos[qname] = (0, )  # Create the key if it does not exist
                 formated[qname].append(line[:11])  # Reduces the size of the data to store
-                if int(line[3]) > maxpos[qname][0]:
+                if int(line[3]) > maxpos[qname][0] and line[5] != '*':
                     maxpos[qname] = (int(line[3]), line[5])
 
         return formated, maxpos, total_lines
@@ -156,6 +158,7 @@ def main(argv):
     for chromosome, reads in formated.items():  # Iterate over the reads
         reads = np.array(reads)  # Convert the list to a numpy array
 
+        print(maxpos[chromosome])
         length = maxpos[chromosome][0] + len(modules['analyse'].readCigar(maxpos[chromosome][1])[1])
         mapq = np.zeros(length, dtype=np.int16)  # Create an array of zeros to store the mapq
         depth = np.zeros(length, dtype=np.int16)  # Create an array of zeros to store the depth
