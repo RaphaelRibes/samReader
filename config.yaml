@@ -12,8 +12,8 @@ significant figures: 2  # Number of significant figures to keep for the CIGAR mu
 # Analyses
 bins: 100  # Number of bins for the coverage plot
 calculation method: # Method to calculate the coverage
-  depth: 'mean'  # for depth
+  depth: 'median'  # for depth
   mapq: 'mean'  # for mapping quality
 # 'mean' or 'median'
-n ticks: 15  # The Number of ticks for the coverage plot
+n ticks: 10  # The Number of ticks for the coverage plot
 # The higher the number of ticks, the more precise the graduation will be on the x-axis

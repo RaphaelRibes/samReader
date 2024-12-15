@@ -19,6 +19,7 @@ usage() {
   else
       echo -e "SAM Version: $version"
   fi
+  sam_versions
   echo
   echo -e "${WHITE}Options:"
   echo "  -i, --input <file>        Specifies the input file"
@@ -27,6 +28,14 @@ usage() {
   echo "  -v, --verbose             (optional) Shows details of each step"
   echo "  -a, --auto-open           (optional) Open the output file at the end of the analysis"
   exit
+}
+
+sam_versions() {
+    echo -e "${WHITE}"
+    echo "The available versions are:"
+    for version in "$(dirname "$0")"/SAM_specs/*; do
+        echo "  - $(basename "$version")"
+    done
 }
 
 # Using getopt to support both short and long options
