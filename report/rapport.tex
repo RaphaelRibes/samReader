@@ -1,0 +1,37 @@
+%! Author = raphael
+%! Date = 12/10/24
+
+% Preamble
+\documentclass[11pt]{article}
+
+% Packages
+\usepackage{amsmath}
+
+% Document
+\begin{document}
+
+\title{Développement d'un lecteur de fichiers SAM pour l'analyse des données génomiques}
+\maketitle
+
+\section{Introduction}\label{sec:introduction}
+
+
+\section{Présentation du format SAM}\label{sec:presentation-du-format-sam}
+
+
+\section{Exemple d'application}\label{sec:exemple-d'application}
+
+
+\section{Description du programme}\label{sec:description-du-programme}
+
+
+\section{Discussion}\label{sec:discussion}
+Le programme traite des fichiers SAM en analysant les reads seuls et par paires ce qui permet de déterminer sir certaines paires map partiellement et donc isoler les reads qui ne sont pas complètement alignés.
+Il génère aussi des graphiques de profondeur sur tout le chromosome et permet de visualiser la validité alignements des reads sur le génome.
+Ce graphique est personalisable en changeant la quantité de points affichés.
+Ces étapes demandent des calculs importants, notamment pour examiner les alignements, analyser les caractéristiques de chaque read et leur relation avec les paires, puis convertir ces données en graphiques.
+La création des graphiques, en plus des analyses complexes, augmente la consommation de mémoire et le temps de calcul, ce qui ralentit le programme, surtout pour les fichiers volumineux ou ceux comportant de nombreux alignements.
+De plus la compilation \LaTeX des rapports générés par le programme est lente et demande beaucoup de temps.
+De mon point de vue, cette lenteur vaut la qualité des rapports générés, qui sont clairs et informatifs.
+
+\end{document}
