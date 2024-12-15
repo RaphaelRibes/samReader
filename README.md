@@ -73,6 +73,13 @@ The minimal command to run `samReader` is described like this:
 bash samReader.sh -i /path/to/your/mapping.sam
 ```
 
+But I recommend using, at least, verbose mode to see the progress of the analysis.
+To do so, you can use the following command:
+
+```bash
+bash samReader.sh -i /path/to/your/mapping.sam -v
+```
+
 ### How to use config.yaml
 
 The config.yaml file is used to customize the analysis. You can change the following parameters:

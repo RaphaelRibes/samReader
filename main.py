@@ -158,7 +158,6 @@ def main(argv):
     for chromosome, reads in formated.items():  # Iterate over the reads
         reads = np.array(reads)  # Convert the list to a numpy array
 
-        print(maxpos[chromosome])
         length = maxpos[chromosome][0] + len(modules['analyse'].readCigar(maxpos[chromosome][1])[1])
         mapq = np.zeros(length, dtype=np.int16)  # Create an array of zeros to store the mapq
         depth = np.zeros(length, dtype=np.int16)  # Create an array of zeros to store the depth
