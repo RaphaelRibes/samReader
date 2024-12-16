@@ -7,6 +7,7 @@
 
 ## Features
 
+- **Precise Error Localization**: Identifies the exact location and type of errors in the reads.
 - **Summary Reports**: Generates comprehensive summaries of the analyses in text under pdf format.
 - **Detailed CIGAR Analysis**: Provides detailed information about the CIGAR strings of the reads.
 - **Chromosome-Specific Analysis**: Generates separate directories for each chromosome, containing mapped, partially mapped, and unmapped reads.

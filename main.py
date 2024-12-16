@@ -134,6 +134,7 @@ def main(argv):
     local_directory = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the script
 
     os.makedirs(results_dir, exist_ok=True)  # Create the directory if it doesn't exist
+    os.makedirs(os.path.join(os.getcwd(), "temp"), exist_ok=True)
 
     config = yaml.safe_load(open(f"{local_directory}/config.yaml", "r")) # Load the version from the config file
     modules = {"analyse": None,
@@ -153,7 +154,6 @@ def main(argv):
                                                 separator=config['separator'],
                                                 maq_threshold=config['mapq threshold'])
 
-    os.makedirs(os.path.join(os.getcwd(), "temp"), exist_ok=True)
     total = None
     for chromosome, reads in formated.items():  # Iterate over the reads
         reads = np.array(reads)  # Convert the list to a numpy array
