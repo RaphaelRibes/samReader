@@ -76,9 +76,9 @@ def plot_depth_mapq(depth: np.array,
     ax1.tick_params(colors='tab:blue', axis='y')
 
     # Plot the mapq
-    ax2.plot(sampled_mapq, color='tab:orange', label='MAPQ')
+    ax2.plot(sampled_mapq, color='tab:orange', label='Mapping Quality (MAPQ)')
     ax2.fill_between(np.arange(0, len(classed_mapq)), mapq_lower_limit, mapq_upper_limit, alpha=0.3, color='tab:orange')
-    ax2.set_ylabel('MAPQ', color='tab:orange')
+    ax2.set_ylabel('Mapping Quality (MAPQ)', color='tab:orange')
     ax2.spines['right'].set_color('tab:orange')
 
     # Set the labels and limits
