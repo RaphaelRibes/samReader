@@ -1,0 +1,15 @@
+[0] Config.pm:307> INFO - This is Biber 2.19
+[0] Config.pm:310> INFO - Logfile is 'out/rapport.blg'
+[56] biber:340> INFO - === Mon Dec 16, 2024, 17:45:32
+[66] Biber.pm:419> INFO - Reading 'out/rapport.bcf'
+[109] Biber.pm:979> INFO - Found 1 citekeys in bib section 0
+[117] Biber.pm:4419> INFO - Processing section 0
+[125] Biber.pm:4610> INFO - Looking for bibtex file 'samReader.bib' for section 0
+[125] bibtex.pm:1713> INFO - LaTeX decoding ...
+[128] bibtex.pm:1519> INFO - Found BibTeX data source 'samReader.bib'
+[163] UCollate.pm:68> INFO - Overriding locale 'fr-FR' defaults 'variable = shifted' with 'variable = non-ignorable'
+[163] UCollate.pm:68> INFO - Overriding locale 'fr-FR' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[163] Biber.pm:4239> INFO - Sorting list 'none/global//global/global' of type 'entry' with template 'none' and locale 'fr-FR'
+[163] Biber.pm:4245> INFO - No sort tailoring available for locale 'fr-FR'
+[167] bbl.pm:660> INFO - Writing 'out/rapport.bbl' with encoding 'UTF-8'
+[168] bbl.pm:763> INFO - Output to out/rapport.bbl
